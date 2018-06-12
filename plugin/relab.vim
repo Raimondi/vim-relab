@@ -26,17 +26,15 @@ function! RELabParser() "{{{
   let p.ends_collection = {t -> t ==# ']'}
 
   let p.item_or_eol = {t -> t =~# '\m^\\_[$^.iIkKfFpPsSdDxXoOwWhHaAlLuU]$'}
-  let p.with_underscore = {t -> t ==# '\_'}
 
-  let p.incomplete_main = {m -> (m !=# 'v' ? '\m^\\' : '\m^') .
-        \'\%(@<\?\|%[<>]\?\%(\d*\|''\)\|_\|#\|{[^}]*\)\?$'}
+  let p.incomplete_main = {t -> t =~# '\m^\\\%(@<\?\|%[<>]\?\%(\d*\|''\)\|_\|#\|{[^}]*\)\?$'}
   let p.incomplete = {}
-  let p.incomplete.engine = {m -> '\m^'.(m !=# 'v' ? '\\' : '').'%#=\d'}
-  let p.incomplete.decimal = {m -> '\m^'.(m !=# 'v' ? '\\' : '').'%d\d\+'}
-  let p.incomplete.octal = {m -> '\m^'.(m !=# 'v' ? '\\' : '').'%o\o\{1,3}'}
-  let p.incomplete.hex2 = {m -> '\m^'.(m !=# 'v' ? '\\' : '').'%x\x\{1,2}'}
-  let p.incomplete.hex4 = {m -> '\m^'.(m !=# 'v' ? '\\' : '').'%u\x\{1,4}'}
-  let p.incomplete.hex8 = {m -> '\m^'.(m !=# 'v' ? '\\' : '').'%U\x\{1,8}'}
+  let p.incomplete.engine = {t -> t =~# '\m^\\%#=\d'}
+  let p.incomplete.decimal = {t -> t =~# '\m^\\%d\d\+'}
+  let p.incomplete.octal = {t -> t =~# '\m^\\%o\o\{1,3}'}
+  let p.incomplete.hex2 = {t -> t =~# '\m^\\%x\x\{1,2}'}
+  let p.incomplete.hex4 = {t -> t =~# '\m^\\%u\x\{1,4}'}
+  let p.incomplete.hex8 = {t -> t =~# '\m^\\%U\x\{1,8}'}
 
   let p.is_multi = {t -> index(['*', '\?', '\=', '\+'], t) >= 0
         \ || t=~# '\m^\\{[^}]*}$'}
@@ -56,17 +54,12 @@ function! RELabParser() "{{{
         \{t -> t =~# '\m^\\_[^iIkKfFpPsSdDxXoOwWhHaAlLuU^$[]$'}
   let p.is_coll_range =
         \{t -> t =~# '\m^\%(\\[-^\]\\ebnrt]\|[^\\]\)-\%(\\[-^\]\\ebnrt]\|[^\\]\)$'}
-  let p.like_code_point = {t -> t =~# '\m^\\%[duUx]'}
+  let p.like_code_point = {t -> t =~# '\m^\\%[douUx]'}
   let p.is_code_point =
-        \{t -> t =~# '\m^\\%\(d\d\+\|o\o\{1,3}\|x\x\{1,2}\|u\x\{1,4}\|U\x\{1,8}\)$'}
+        \{t -> t =~# '\m^\\%\(d\d\+\|o0\?\o\{1,3}\|x\x\{1,2}\|u\x\{1,4}\|U\x\{1,8}\)$'}
   let p.is_invalid_percent = {t -> t =~# '\m^\\%[^V#^$C]'}
   let p.is_mark = {t -> t =~# '\m^\\%[<>]\?''[a-zA-Z0-9''[\]<>]$'}
   let p.is_lcv = {t -> t =~# '\m^\\%[<>]\?\d*[clv]'}
-
-  function! p.is_nothing(node) "{{{
-    return empty(a:node.previous) || self.is_branch(a:node.previous.id)
-          \|| self.is_look_around(a:node.previous.id)
-  endfunction "}}}
 
   " p.id_map {{{
   let p.id_map = {
@@ -96,10 +89,8 @@ function! RELabParser() "{{{
         \'\@123<!': {'help_tag': '/\@<!', 'description': 'Matches with zero width if the preceding atom does NOT match just before what follows but only look back 123 bytes.'},
         \'\@>': {'help_tag': '/\@>', 'description': 'Matches the preceding atom like matching a whole pattern.'},
         \'^' : {'help_tag': '/^', 'description': 'At beginning of pattern or after "\|", "\(", "\%(" or "\n": matches start-of-line with zero width; at other positions, matches literal ''^''.'},
-        \'\^': {'help_tag': '/\^', 'description': 'Matches literal ''^''.  Can be used at any position in the pattern.'},
         \'\_^': {'help_tag': '/\_^', 'description': 'Matches start-of-line. zero-width  Can be used at any position in the pattern.'},
         \'$': {'help_tag': '/$', 'description': 'At end of pattern or in front of "\|", "\)" or "\n" (''magic'' on): matches end-of-line <EOL> with zero width; at other positions, matches literal ''$''.'},
-        \'\$': {'help_tag': '/\$', 'description': 'Matches literal ''$''.  Can be used at any position in the pattern.'},
         \'\_$': {'help_tag': '/\_$', 'description': 'Matches end-of-line with zero width. Can be used at any position in the pattern.'},
         \'.': {'help_tag': '/.', 'description': 'Matches any single character, but not an end-of-line.'},
         \'\_.': {'help_tag': '/\_.', 'description': 'Matches any single character or end-of-line.'},
@@ -149,15 +140,35 @@ function! RELabParser() "{{{
         \'\L': {'help_tag': '/\L', 'description': 'Matches a non-lowercase character: [^a-z]'},
         \'\u': {'help_tag': '/\u', 'description': 'Matches an uppercase character: [A-Z]'},
         \'\U': {'help_tag': '/\U', 'description': 'Matches a non-uppercase character: [^A-Z]'},
-        \'\_x': {'help_tag': '/\_', 'description': 'Where "x" is any of the characters above: The character class with end-of-line added'},
-        \'\e': {'help_tag': '/\e', 'description': 'Matches <Esc>'},
-        \'\t': {'help_tag': '/\t', 'description': 'Matches <Tab>'},
-        \'\r': {'help_tag': '/\r', 'description': 'Matches <CR>'},
-        \'\b': {'help_tag': '/\b', 'description': 'Matches <BS>'},
-        \'\n': {'help_tag': '/\n', 'description': 'Matches an end-of-line'},
+        \'\_i': {'help_tag': '/\i', 'description': 'Matches an identifier character (see ''isident'' option) or a newline (like \n)'},
+        \'\_I': {'help_tag': '/\I', 'description': 'Matches an identifier character, but excluding digits or a newline (like \n)'},
+        \'\_k': {'help_tag': '/\k', 'description': 'Matches a keyword character (see ''iskeyword'' option) or a newline (like \n)'},
+        \'\_K': {'help_tag': '/\K', 'description': 'Matches a keyword character, but excluding digits or a newline (like \n)'},
+        \'\_f': {'help_tag': '/\f', 'description': 'Matches a file name character (see ''isfname'' option) or a newline (like \n)'},
+        \'\_F': {'help_tag': '/\F', 'description': 'Matches a file name character, but excluding digits or a newline (like \n)'},
+        \'\_p': {'help_tag': '/\p', 'description': 'Matches a printable character (see ''isprint'' option) or a newline (like \n)'},
+        \'\_P': {'help_tag': '/\P', 'description': 'Matches a printable character, but excluding digits or a newline (like \n)'},
+        \'\_s': {'help_tag': '/\s', 'description': 'Matches a whitespace character: <Space> and <Tab> or a newline (like \n)'},
+        \'\_S': {'help_tag': '/\S', 'description': 'Matches a non-whitespace character; opposite of \s or a newline (like \n)'},
+        \'\_d': {'help_tag': '/\d', 'description': 'Matches a digit: [0-9] or a newline (like \n)'},
+        \'\_D': {'help_tag': '/\D', 'description': 'Matches a non-digit: [^0-9] or a newline (like \n)'},
+        \'\_x': {'help_tag': '/\x', 'description': 'Matches a hex digit: [0-9A-Fa-f] or a newline (like \n)'},
+        \'\_X': {'help_tag': '/\X', 'description': 'Matches a non-hex digit: [^0-9A-Fa-f] or a newline (like \n)'},
+        \'\_o': {'help_tag': '/\o', 'description': 'Matches an octal digit: [0-7] or a newline (like \n)'},
+        \'\_O': {'help_tag': '/\O', 'description': 'Matches a non-octal digit: [^0-7] or a newline (like \n)'},
+        \'\_w': {'help_tag': '/\w', 'description': 'Matches a word character: [0-9A-Za-z_] or a newline (like \n)'},
+        \'\_W': {'help_tag': '/\W', 'description': 'Matches a non-word character: [^0-9A-Za-z_] or a newline (like \n)'},
+        \'\_h': {'help_tag': '/\h', 'description': 'Matches a head of word character: [A-Za-z_] or a newline (like \n)'},
+        \'\_H': {'help_tag': '/\H', 'description': 'Matches a non-head of word character: [^A-Za-z_] or a newline (like \n)'},
+        \'\_a': {'help_tag': '/\a', 'description': 'Matches an alphabetic character: [A-Za-z] or a newline (like \n)'},
+        \'\_A': {'help_tag': '/\A', 'description': 'Matches a non-alphabetic character: [^A-Za-z] or a newline (like \n)'},
+        \'\_l': {'help_tag': '/\l', 'description': 'Matches a lowercase character: [a-z] or a newline (like \n)'},
+        \'\_L': {'help_tag': '/\L', 'description': 'Matches a non-lowercase character: [^a-z] or a newline (like \n)'},
+        \'\_u': {'help_tag': '/\u', 'description': 'Matches an uppercase character: [A-Z] or a newline (like \n)'},
+        \'\_U': {'help_tag': '/\U', 'description': 'Matches a non-uppercase character: [^A-Z] or a newline (like \n)'},
         \'~': {'help_tag': '/\~', 'description': 'Matches the last given substitute string.'},
-        \'\(': {'help_tag': '/\(', 'description': 'A pattern enclosed by escaped parentheses.'},
-        \'\)': {'help_tag': '/\)', 'description': 'A pattern enclosed by escaped parentheses.'},
+        \'\(': {'help_tag': '/\(', 'description': 'Start a pattern enclosed by escaped parentheses.'},
+        \'\)': {'help_tag': '/\)', 'description': 'End a pattern enclosed by escaped parentheses.'},
         \'\1': {'help_tag': '/\1', 'description': 'Matches the same string that was matched by the first sub-expression in \( and \).'},
         \'\2': {'help_tag': '/\2', 'description': 'Matches the same string that was matched by the second sub-expression in \( and \).'},
         \'\3': {'help_tag': '/\3', 'description': 'Matches the same string that was matched by the third sub-expression in \( and \).'},
@@ -167,7 +178,7 @@ function! RELabParser() "{{{
         \'\7': {'help_tag': '/\7', 'description': 'Matches the same string that was matched by the seventh sub-expression in \( and \).'},
         \'\8': {'help_tag': '/\8', 'description': 'Matches the same string that was matched by the eighth sub-expression in \( and \).'},
         \'\9': {'help_tag': '/\9', 'description': 'Matches the same string that was matched by the ninth sub-expression in \( and \).'},
-        \'\%(': {'help_tag': '/\%(', 'description': 'A pattern enclosed by escaped parentheses.  Just like \(\), but without counting it as a sub-expression.'},
+        \'\%(': {'help_tag': '/\%(', 'description': 'Start a pattern enclosed by escaped parentheses.  Just like \(\), but without counting it as a sub-expression.'},
         \'[': {'help_tag': '/[]', 'description': 'This is a sequence of characters enclosed in brackets. It matches any single character in the collection.'},
         \'\_[': {'help_tag': '/\_[]', 'description': 'This is a sequence of characters enclosed in brackets. It matches any single character in the collection.  With "\_" prepended the collection also includes the end-of-line.'},
         \'\[^': {'help_tag': 'E944', 'description': 'If the sequence begins with "^", it matches any single character NOT in the collection: "[^xyz]" matches anything but ''x'', ''y'' and ''z''.'},
@@ -214,8 +225,13 @@ function! RELabParser() "{{{
         \'\M': {'help_tag': '/\M', 'description': '''magic'' off for the following chars in the pattern'},
         \'\v': {'help_tag': '/\v', 'description': 'the following chars in the pattern are "very magic"'},
         \'\V': {'help_tag': '/\V', 'description': 'the following chars in the pattern are "very nomagic"'},
-        \'\%#=1': {'help_tag': '/\%#=', 'description': 'select regexp engine |/zero-width|'},
+        \'\%#=': {'help_tag': '/\%#=', 'description': 'select regexp engine'},
         \} "}}}
+
+  function! p.is_nothing(node) "{{{
+    return empty(a:node.previous) || self.is_branch(a:node.previous.id)
+          \|| self.is_look_around(a:node.previous.id)
+  endfunction "}}}
 
   function! p.init(...) "{{{
     let self.magic = 'm'
@@ -244,7 +260,7 @@ function! RELabParser() "{{{
     return self
   endfunction "}}}
 
-  function! p.normalize(token, magic) "{{{
+  function! p.to_magic(token, magic) "{{{
     if a:magic ==# 'M'
       if a:token =~# '\m^\\[.*~[]$'
         return a:token[1:]
@@ -278,7 +294,7 @@ function! RELabParser() "{{{
     let n.nesting_level = len(self.nest_stack)
     let n.previous = get(self.parent.children, -1, {})
     let n.next = {}
-    let n.normal = self.normalize(self.token, self.magic)
+    let n.normal = self.to_magic(self.token, self.magic)
     let n.id = self.to_id(n.normal)
     let n.help_tag = self.help_tag(n)
     let n.value = self.token
@@ -320,8 +336,9 @@ function! RELabParser() "{{{
     elseif self.is_coll_range(a:text)
       " /[a-z]
       return 'a-b'
-    elseif a:text =~# '\m^\\_.$'
-      return '\_'
+    elseif a:text =~# '\m^\\%#=.\?'
+      " regexp engine
+      return '\%#='
     endif
     return a:text
   endfunction "}}}
@@ -343,7 +360,7 @@ function! RELabParser() "{{{
     return printf('%s%s => %s', indent, a:node.value, msg)
   endfunction "}}}
 
-  function! p.get_lines() "{{{
+  function! p.lines() "{{{
     let lines = []
     if !empty(self.errors)
       return extend(lines, self.errors[0].error)
@@ -399,6 +416,14 @@ function! RELabParser() "{{{
     return map(copy(self.sequence), 'get(v:val, a:key, '''')')
   endfunction "}}}
 
+  function! p.normals() "{{{
+    return map(copy(self.sequence), 'get(v:val, ''normal'', '''')')
+  endfunction "}}}
+
+  function! p.values() "{{{
+    return map(copy(self.sequence), 'get(v:val, ''value'', '''')')
+  endfunction "}}}
+
   function! p.ids() "{{{
     return map(copy(self.sequence), 'get(v:val, ''id'', '''')')
   endfunction "}}}
@@ -423,30 +448,38 @@ function! RELabParser() "{{{
   endfunction "}}}
 
   function! p.is_incomplete() "{{{
+    DbgRELab printf('is_incomplete')
     if self.in_collection
       return self.incomplete_in_collection()
     endif
-    if self.token =~# self.incomplete_main(self.magic)
+    let token = self.to_magic(self.token, self.magic)
+    if self.incomplete_main(token)
+      DbgRELab printf('is_incomplete -> main: %s', token)
       return 1
     endif
-    let ahead = strcharpart(self.input, 1)
-    let current = self.token . ahead
-    if self.token =~# '\m^' . (self.magic ==# 'v' ? '' : '\\') . '%d\d*$' && ahead =~# '\m^\d'
+    let ahead = strcharpart(self.input, self.pos, 1)
+    let next = token . ahead
+    if next =~# '\m^\\%d\d*$'
+      DbgRELab printf('is_incomplete -> dec: %s', next)
       return 1
-    elseif self.token =~# '\m^' . (self.magic ==# 'v' ? '' : '\\') . '%o\o\{,2}$' && ahead =~# '\m^\o'
+    elseif next =~# '\m^\\%o0\?\o\{,3}$'
+          \&& printf('0%s', matchstr(next, '0\?\zs\o\+')) <= 0377
+      DbgRELab printf('is_incomplete -> oct: %s', next)
       return 1
-    elseif self.token =~# '\m^' . (self.magic ==# 'v' ? '' : '\\') . '%x\x\?$' && ahead =~# '\m^\x'
+    elseif next =~# '\m^\\%x\x\{,2}$'
+      DbgRELab printf('is_incomplete -> hex2: %s', next)
       return 1
-    elseif self.token =~# '\m^' . (self.magic ==# 'v' ? '' : '\\') . '%u\x\{,3}$' && ahead =~# '\m^\x'
+    elseif next =~# '\m^\\%u\x\{,4}$'
+      DbgRELab printf('is_incomplete -> hex4: %s', next)
       return 1
-    elseif self.token =~# '\m^' . (self.magic ==# 'v' ? '' : '\\') . '%U\x\{,7}$' && ahead =~# '\m^\x'
-    elseif self.token =~# '\m^' . (self.magic ==# 'v' ? '' : '\\') . '%[duUx]$'
+    elseif next =~# '\m^\\%U\x\{,8}$'
+      DbgRELab printf('is_incomplete -> hex8: %s', next)
+      return 1
+    elseif next =~# '\m^\\%[duUx].$'
+      DbgRELab printf('is_incomplete -> code point: %s', next)
       return 1
     endif
-    if !empty(filter(values(self.incomplete),
-          \'current =~# call(v:val, [self.magic])'))
-      return 1
-    endif
+    DbgRELab printf('is_incomplete -> else: next: %s', next)
     return 0
   endfunction "}}}
 
@@ -473,11 +506,10 @@ function! RELabParser() "{{{
     DbgRELab printf('parse: %s', a:input)
     call self.init(a:input)
     while self.next()
-      DbgRELab printf('parse -> token: %s', self.token)
       let node = self.new_child()
+      DbgRELab printf('parse -> token: %s, id: %s', node.value, node.id)
 
-      " process token
-      if self.in_collection
+      if self.in_collection "{{{
         DbgRELab  'parse -> collection'
         if self.ends_collection(node.id)
           DbgRELab  'parse -> collection -> ends collection'
@@ -509,20 +541,25 @@ function! RELabParser() "{{{
         else
           DbgRELab  'parse -> collection -> else'
         endif
+        "}}}
 
-      elseif self.token =~# '\m^\\%#=.\?$'
+      elseif node.id ==# '\%#=' "{{{
         DbgRELab  printf('parse -> engine')
-        let errormessage =
-              \'\%#= can only be followed by 0, 1, or 2'
-        call self.add_error(node, errormessage)
+        if matchstr(node.value, '^\m\\%#=\zs.\?') !~# '\m^[0-2]$'
+          let errormessage =
+                \'\%#= can only be followed by 0, 1, or 2'
+          call self.add_error(node, errormessage)
+        endif
+        "}}}
 
-      elseif self.in_optional_group() && self.is_invalid_in_optional(node.id)
+      elseif self.in_optional_group() && self.is_invalid_in_optional(node.id) "{{{
         DbgRELab  printf('parse -> invalid in optional')
         let errormessage =
               \printf('%s is not valid inside \%%[]', node.value)
         call self.add_error(node, errormessage)
+        "}}}
 
-      elseif self.starts_group(node.id)
+      elseif self.starts_group(node.id) "{{{
         DbgRELab  printf('parse -> starts group')
         call add(self.nest_stack, node)
         let self.parent = node
@@ -547,8 +584,9 @@ function! RELabParser() "{{{
             call self.add_error(node, errormessage)
           endif
         endif
+        "}}}
 
-      elseif self.ends_group(node.id)
+      elseif self.ends_group(node.id) "{{{
         DbgRELab  printf('parse -> ends group')
         if self.is_paired(node.id)
           DbgRELab  printf('parse -> ends group -> is paired')
@@ -580,18 +618,21 @@ function! RELabParser() "{{{
             call self.add_error(node, errormessage)
           endif
         endif
+        "}}}
 
-      elseif self.with_underscore(node.id) && self.is_invalid_underscore(node.value)
-        DbgRELab  printf('parse -> invalid underscore')
-        " /\_=
-        let char = strcharpart(node.normal, 2)
-        let errormessage = 'invalid use of \_'
-        call self.add_error(node, errormessage)
+      elseif self.has_underscore(node.id) "{{{
+        DbgRELab  printf('parse -> has underscore')
+        if self.is_valid_underscore(node.id)
+          DbgRELab  printf('parse -> has underscore -> valid')
+        elseif self.is_invalid_underscore(node.id)
+          DbgRELab  printf('parse -> has underscore -> invalid')
+          let char = strcharpart(node.normal, 2)
+          let errormessage = 'invalid use of \_'
+          call self.add_error(node, errormessage)
+        endif
+        "}}}
 
-      elseif self.with_underscore(node.id) && self.is_valid_underscore(node.value)
-        DbgRELab  printf('parse -> valid underscore')
-
-      elseif self.is_multi(node.id)
+      elseif self.is_multi(node.id) "{{{
         DbgRELab  printf('parse -> multi')
         if !empty(node.previous) && self.is_multi(node.previous.id)
           DbgRELab  printf('parse -> multi -> follows multi')
@@ -636,66 +677,78 @@ function! RELabParser() "{{{
             call self.add_error(node, errormessage)
           endif
         endif
+        "}}}
 
-      elseif self.is_back_reference(node.id)
+      elseif self.is_back_reference(node.id) "{{{
         DbgRELab  printf('parse -> back reference')
         if strcharpart(node.value, 1, 1) > self.capt_groups
           DbgRELab  printf('parse -> back reference -> illegal')
           let errormessage = 'illegal back reference'
           call self.add_error(node, errormessage)
         endif
+        "}}}
 
-      elseif self.is_look_around(node.id)
+      elseif self.is_look_around(node.id) "{{{
         DbgRELab  printf('parse -> look around')
         if strcharpart(node.value, 1, 1) > self.capt_groups
           DbgRELab  printf('parse -> look around -> illegal')
           let errormessage = 'illegal back reference'
           call self.add_error(node, errormessage)
         endif
+        "}}}
 
-      elseif self.starts_with_at(node.id)
+      elseif self.starts_with_at(node.id) "{{{
         DbgRELab  printf('parse -> starts with @')
         let errormessage = printf('invalid character after %s',
               \(node.magic ==# 'v' ? '@' : '\@'))
         call self.add_error(node, errormessage)
+        "}}}
 
-      elseif self.like_code_point(node.id)
-        DbgRELab  printf('parse -> like code point')
-        if self.is_code_point(node.id)
-          DbgRELab  printf('parse -> like code point -> valid code point')
+      elseif self.like_code_point(node.id) "{{{
+        DbgRELab  printf('parse -> like code point: normal: %s', node.normal)
+        if self.is_code_point(node.normal)
+          DbgRELab  printf('parse -> like code point -> hexadecimal 8')
         else
           DbgRELab  printf('parse -> like code point -> invalid code point')
           let errormessage = printf('invalid character after %s',
                 \matchstr(node.value, '\\\?%[duUx]'))
           call self.add_error(node, errormessage)
         endif
+        "}}}
 
-      elseif self.is_mark(node.id)
+      elseif self.is_mark(node.id) "{{{
         DbgRELab  printf('parse -> mark')
+        "}}}
 
-      elseif self.is_lcv(node.id)
+      elseif self.is_lcv(node.id) "{{{
         DbgRELab  printf('parse -> lcv')
+        "}}}
 
-      elseif self.is_invalid_percent(node.id)
+      elseif self.is_invalid_percent(node.id) "{{{
         DbgRELab  printf('parse -> invalid percent')
         let errormessage = printf('invalid character after %s',
               \matchstr(node.value, '\\\?%'))
         call self.add_error(node, errormessage)
+        "}}}
 
-      elseif self.is_magic(node.id)
+      elseif self.is_magic(node.id) "{{{
         DbgRELab  printf('parse -> magic')
         let self.magic = node.id[1]
+        "}}}
+
+      elseif has_key(self.id_map, node.id) "{{{
+        DbgRELab  printf('parse -> has_key')
+        "}}}
 
       else
         DbgRELab  printf('parse -> literal match')
+        "let node.id = 'x'
       endif
     endwhile
     if !empty(self.nest_stack)
       DbgRELab  printf('parse -> non-empty nest stack')
       for node in self.nest_stack
         DbgRELab  printf('parse -> non-empty nest stack -> loop: %s', node.value)
-        " handle errors
-        " /\(
         if self.starts_opt_group(node.id)
           let errormessage = printf('missing ] after %s', node.value)
         else
@@ -710,6 +763,72 @@ function! RELabParser() "{{{
   return p.init()
 endfunction "}}}
 
+function! RELabOnTextChange() "{{{
+  let pattern = getline('1')
+  if pattern ==# get(s:, 'previous_pattern', '')
+    echom 'skipped'
+    return
+  endif
+  let s:previous_pattern = pattern
+  let time1 = reltime()
+  let curpos = getpos('.')
+  call g:relab.parse(pattern)
+  if line('$') > 1
+    2,$d_
+  endif
+  let lines = g:relab.lines()
+  call append(1, lines)
+  call setpos('.', curpos)
+  if get(s:, 'errormatchid', 0)
+        \&& !empty(filter(getmatches(), 'v:val.id == s:errormatchid'))
+    call matchdelete(s:errormatchid)
+  endif
+  if !empty(g:relab.errors)
+    let node = g:relab.errors[0]
+    let matchpattern = printf('\%%1l\%%%sv%s', node.pos + 1, repeat('.', strchars(node.value)))
+    let s:errormatchid = matchadd('Error', matchpattern)
+  endif
+  let time = reltimestr(reltime(time1, reltime()))
+  echom printf('Time for %s in line %s is %s', pattern, line('.'), time)
+endfunction "}}}
+
+function! RELabDebug(msg) "{{{
+  if get(g:, 'relab_debug', 0)
+    echom printf('RELab: %s', a:msg)
+  endif
+endfunction "}}}
+
+function! RELabSetUp(regexp) "{{{
+  let regexp = empty(a:regexp) ? @/ : a:regexp
+  let bufnr = get(s:, 'bufnr', bufnr('relab'))
+  if bufnr >= 0
+    let winnr = bufwinnr(bufnr)
+    if winnr >= 0
+      exec printf('%swincmd w', winnr)
+    else
+      if get(g:, 'relab_split', 1)
+        split relab
+      endif
+      exec printf('buffer %s', bufnr)
+    endif
+  else
+    if get(g:, 'relab_split', 1)
+      split relab
+    else
+      edit relab
+    endif
+    set filetype=relab
+    set buftype=nofile
+    let s:bufnr = bufnr('%')
+    augroup RELab
+      autocmd!
+      autocmd TextChanged,TextChangedI <buffer> call RELabOnTextChange()
+      autocmd BufWinLeave,WinLeave <buffer> let @/ = getline(1)
+    augroup END
+  endif
+  call setline(1, regexp)
+endfunction "}}}
+
 function! RELabTest() "{{{
   let debug = get(g:, 'relab_debug', 0)
   let g:relab_debug = 0
@@ -720,27 +839,27 @@ function! RELabTest() "{{{
 
   let input =     ''
   let expected = []
-  let output = p.parse(input).sequence_of('normal')
+  let output = p.parse(input).normals()
   call assert_equal(expected, output, input)
 
   let input =     '^'
   let expected = ['^']
-  let output = p.parse(input).sequence_of('normal')
+  let output = p.parse(input).normals()
   call assert_equal(expected, output, input)
 
   let input =     '^a\+'
   let expected = ['^', 'a', '\+']
-  let output = p.parse(input).sequence_of('normal')
+  let output = p.parse(input).normals()
   call assert_equal(expected, output, input)
 
   let input =     '^a\+\vb+'
   let expected = ['^', 'a', '\+', '\v', 'b', '\+']
-  let output = p.parse(input).sequence_of('normal')
+  let output = p.parse(input).normals()
   call assert_equal(expected, output, input)
 
   let input =     '\)'
   let expected = ['^^', 'Error: unmatched \)']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '.\{}'
@@ -803,163 +922,158 @@ function! RELabTest() "{{{
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
 
+  let input =     '.\?'
+  let expected = ['.', '\?']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+
+  let input =     '.\='
+  let expected = ['.', '\=']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+
+  let input =     '.*'
+  let expected = ['.', '*']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+
+  let input =     '.\+'
+  let expected = ['.', '\+']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+
+  let input =     '\v\1'
+  let expected = ['\v', '\1']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+
+  let input =     '\%x1234'
+  let expected = ['\%x', '3', '4']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+
+  let input =     '\%o1234'
+  let expected = ['\%o', '4']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+
+  let input =     '\%o0377'
+  let expected = ['\%o']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+
+  let input =     '\%o377'
+  let expected = ['\%o']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+
+  let input =     '\%o400'
+  let expected = ['\%o', '0']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+
+  let input =     '\%o0400'
+  let expected = ['\%o', '0']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+
+  let input =     '\%#=0'
+  let expected = ['\%#=']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+
   let input =     '\%['
   let expected = ['^^^', 'Error: missing ] after \%[']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '\%[a*]'
   let expected = ['----^', 'Error: * is not valid inside \%[]']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '\%[\(]'
   let expected = ['---^^', 'Error: \( is not valid inside \%[]']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '.**'
   let expected = ['--^', 'Error: * can not follow a multi']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '\%#=4'
   let expected = ['^^^^^', 'Error: \%#= can only be followed by 0, 1, or 2']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '[b-a]'
   let expected = ['-^^^', 'Error: reverse range in character class']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '\%[]'
   let expected = ['---^', 'Error: empty \%[]']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '\1'
   let expected = ['^^', 'Error: illegal back reference']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '\(\)\2'
   let expected = ['----^^', 'Error: illegal back reference']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '\(\)\(\)\(\)\(\)\(\)\(\)\(\)\(\)\(\)\(\)'
   let expected = ['------------------------------------^^', 'Error: more than 9 capturing groups']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '.\@x'
   let expected = ['-^^^', 'Error: invalid character after \@']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '\_b'
   let expected = ['^^^', 'Error: invalid use of \_']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '\+'
   let expected = ['^^', 'Error: \+ follows nothing']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '\%dx'
   let expected = ['^^^^', 'Error: invalid character after \%d']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '\%g'
   let expected = ['^^^', 'Error: invalid character after \%']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
   let input =     '.\{a}'
   let expected = ['-^^^^', 'Error: syntax error in \{a}']
-  let output = p.parse(input).get_lines()
+  let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
 
-  let g:relab_debug = debug
+  let g:relab_debug = 0
   for e in v:errors
     echohl WarningMsg
-    DbgRELab  'Test failed: '
+    echom  'Test failed: '
     echohl Normal
     echon e
   endfor
+  let g:relab_debug = debug
 endfunction "}}}
-
-function! RELabOnTextChange() "{{{
-  let pattern = getline('1')
-  if pattern ==# get(s:, 'previous_pattern', '')
-    echom 'skipped'
-    return
-  endif
-  let s:previous_pattern = pattern
-  let time1 = reltime()
-  let curpos = getpos('.')
-  call g:relab.parse(pattern)
-  if line('$') > 1
-    2,$d_
-  endif
-  let lines = g:relab.get_lines()
-  call append(1, lines)
-  call setpos('.', curpos)
-  if get(s:, 'errormatchid', 0)
-        \&& !empty(filter(getmatches(), 'v:val.id == s:errormatchid'))
-    call matchdelete(s:errormatchid)
-  endif
-  if !empty(g:relab.errors)
-    let node = g:relab.errors[0]
-    let matchpattern = printf('\%%1l\%%%sv%s', node.pos + 1, repeat('.', strchars(node.value)))
-    let s:errormatchid = matchadd('Error', matchpattern)
-  endif
-  let time = reltimestr(reltime(time1, reltime()))
-  echom printf('Time for %s in line %s is %s', pattern, line('.'), time)
-endfunction "}}}
-
-function! RELabDebug(msg) "{{{
-  if get(g:, 'relab_debug', 0)
-    echom printf('RELab: %s', a:msg)
-  endif
-endfunction "}}}
-
-function! RELabSetUp(regexp) "{{{
-  let regexp = empty(a:regexp) ? @/ : a:regexp
-  let bufnr = get(s:, 'bufnr', bufnr('relab'))
-  if bufnr >= 0
-    let winnr = bufwinnr(bufnr)
-    if winnr >= 0
-      exec printf('%swincmd w', winnr)
-    else
-      if get(g:, 'relab_split', 1)
-        split relab
-      endif
-      exec printf('buffer %s', bufnr)
-    endif
-  else
-    if get(g:, 'relab_split', 1)
-      split relab
-    else
-      edit relab
-    endif
-    set filetype=relab
-    set buftype=nofile
-    let s:bufnr = bufnr('%')
-    call setline(1, regexp)
-  endif
-endfunction "}}}
-
-augroup RELab
-  autocmd!
-  autocmd TextChanged,TextChangedI relab call RELabOnTextChange()
-augroup END
 
 command! -nargs=* RELab call RELabSetUp(<q-args>)
 command! -nargs=+ DbgRELab call RELabDebug(<args>)
 
-call RELabTest()
 let relab = RELabParser()
+call RELabTest()

@@ -93,30 +93,32 @@ syn match relabEngine /^\\%#=\d/ contained containedin=relabMagic,relabNMagic,re
 syn match relabCompChar /\\%C/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional
 syn match relabCompChar /%C/ contained containedin=relabVMagic,relabVOptional
 
-syn match relabCodePoint /\\%d\d\+/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional
-syn match relabCodePoint /%d\d\+/ contained containedin=relabVMagic,relabVOptional
+syn match relabCodePoint /\\%d\d\+/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional contains=relabCodePointDecDigits
+syn match relabCodePoint /%d\d\+/ contained containedin=relabVMagic,relabVOptional contains=relabCodePointDecDigits
 
-syn match relabCodePoint /\\%o\o\{,3}/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional
-syn match relabCodePoint /%o\o\{,3}/ contained containedin=relabVMagic,relabVOptional
+syn match relabCodePoint /\\%o0\?\%([1-3]\o\{2}\|\o\{,2}\)/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional contains=relabCodePointOctDigits
+syn match relabCodePoint /%o0\?\%([1-3]\o\{2}\|\o\{,2}\)/ contained containedin=relabVMagic,relabVOptional contains=relabCodePointOctDigits
 
-syn match relabCodePoint /\\%x\x\{,2}/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional
-syn match relabCodePoint /%x\x\{,2}/ contained containedin=relabVMagic,relabVOptional
+syn match relabCodePoint /\\%x\x\{,2}/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional contains=relabCodePointHexDigits
+syn match relabCodePoint /%x\x\{,2}/ contained containedin=relabVMagic,relabVOptional contains=relabCodePointHexDigits
 
-syn match relabCodePoint /\\%u\x\{,4}/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional
-syn match relabCodePoint /%u\x\{,4}/ contained containedin=relabVMagic,relabVOptional
+syn match relabCodePoint /\\%u\x\{,4}/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional contains=relabCodePointHexDigits
+syn match relabCodePoint /%u\x\{,4}/ contained containedin=relabVMagic,relabVOptional contains=relabCodePointHexDigits
 
-syn match relabCodePoint /\\%U\x\{,8}/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional
-syn match relabCodePoint /%U\x\{,8}/ contained containedin=relabVMagic,relabVOptional
+syn match relabCodePoint /\\%U\x\{,8}/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional contains=relabCodePointHexDigits
+syn match relabCodePoint /%U\x\{,8}/ contained containedin=relabVMagic,relabVOptional contains=relabCodePointHexDigits
 
-syn match relabCodePointDigits /%\@1<!\x\+/ contained containedin=relabCodePoint
+syn match relabCodePointDecDigits /%\@1<!\d/ contained containedin=relabCodePoint
+syn match relabCodePointOctDigits /%\@1<!\o/ contained containedin=relabCodePoint
+syn match relabCodePointHexDigits /%\@1<!\x/ contained containedin=relabCodePoint
 
 syn match relabBackslash /\\\\/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabVMagic,relabOptional,relabNOptional,relabVNOptional,relabVOptional,relabCollection,relab.NCollection,relabVNCollection,relabVCollection
 
 syn region relabReport start=/\%2l/ end=/\%$/
 syn region relabReportError matchgroup=relabError start=/^-*\^\+$/ end=/^Error:.*/ contained containedin=relabReport
-syn match relabReportItem /^\s*\S\+\s\+=>/ contained containedin=relabReport
-syn match relabReportArrow /=>/ contained containedin=relabReportItem
+syn match relabReportItem /^\%(\s*\S\+\)\?\s\+=>/ contained containedin=relabReport
 syn match relabReportPiece /^\s*\zs\S\+/ contained containedin=relabReportItem
+syn match relabReportArrow /=>/ contained containedin=relabReportItem
 
 " Define the default highlighting.
 " Only used when an item doesn't have highlighting yet
@@ -141,7 +143,9 @@ hi def link relabSynMod			Type
 hi def link relabEngine			Type
 hi def link relabCompChar		Constant
 hi def link relabCodePoint		Special
-hi def link relabCodePointDigits	Constant
+hi def link relabCodePointDecDigits	Constant
+hi def link relabCodePointOctDigits	Constant
+hi def link relabCodePointHexDigits	Constant
 hi def link relabEscaped		Constant
 hi def link relabError			Error
 hi def link relabReportPiece		Identifier
