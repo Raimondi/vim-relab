@@ -676,7 +676,10 @@ function! RELabParser() "{{{
           endif
         else
           DbgRELab  printf('parse -> ends group -> is not paired')
-          if empty(self.nest_stack)
+          if node.id ==# ']'
+            let node.id = 'x'
+            let node.description = self.description(node)
+          elseif empty(self.nest_stack)
             " /\)
             let errormessage = printf('unmatched %s', node.value)
             call self.add_error(node, errormessage)
@@ -1224,6 +1227,20 @@ function! RELabTest() "{{{
 
   let input =     '[\%]'
   let expected = ['[', 'x', 'x', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\V%[a]'
+  let expected = ['\V', 'x', 'x', 'x', 'x']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\V\%[a]'
+  let expected = ['\V', '\%[', 'x', ']']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
