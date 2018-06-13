@@ -11,55 +11,97 @@ endfunction "}}}
 
 function! RELabParser() "{{{
   let p = {}
-  let p.is_magic = {t -> t =~# '\m^\\[mMvV]$'}
+  let p.is_magic =
+        \{t -> t =~# '\m^\\[mMvV]$'}
 
-  let p.is_branch = {t -> t ==# '\|' || t ==# '\&'}
-  let p.starts_group = {t -> t ==# '[' || t =~# '\m^\\%\?($' || t ==# '\%['}
-  let p.starts_capt_group = {t -> t ==# '\('}
-  let p.starts_non_capt_group = {t -> t ==# '\%('}
-  let p.starts_opt_group = {t -> t ==# '\%['}
-  let p.starts_collection = {t -> t ==# '['}
-  let p.ends_group = {t -> t ==# ']' || t ==# '\)'}
-  let p.ends_capt_group = {t -> t ==# '\)'}
-  let p.ends_non_capt_group = {t -> t ==# '\)'}
-  let p.ends_opt_group = {t -> t ==# ']'}
-  let p.ends_collection = {t -> t ==# ']'}
+  let p.is_branch =
+        \{t -> t ==# '\|' || t ==# '\&'}
+  let p.starts_group =
+        \{t -> t ==# '[' || t =~# '\m^\\%\?($' || t ==# '\%['}
+  let p.starts_capt_group =
+        \{t -> t ==# '\('}
+  let p.starts_non_capt_group =
+        \{t -> t ==# '\%('}
+  let p.starts_opt_group =
+        \{t -> t ==# '\%['}
+  let p.starts_collection =
+        \{t -> t ==# '['}
+  let p.ends_group =
+        \{t -> t ==# ']' || t ==# '\)'}
+  let p.ends_capt_group =
+        \{t -> t ==# '\)'}
+  let p.ends_non_capt_group =
+        \{t -> t ==# '\)'}
+  let p.ends_opt_group =
+        \{t -> t ==# ']'}
+  let p.ends_collection =
+        \{t -> t ==# ']'}
+  let p.collection_ends =
+        \{s -> strcharpart(s.input, s.pos) =~# '\m^\(\\.\|[^\]]\)*\]'}
 
-  let p.item_or_eol = {t -> t =~# '\m^\\_[$^.iIkKfFpPsSdDxXoOwWhHaAlLuU]$'}
+  let p.item_or_eol =
+        \{t -> t =~# '\m^\\_[$^.iIkKfFpPsSdDxXoOwWhHaAlLuU]$'}
 
-  let p.incomplete_main = {t -> t =~# '\m^\\\%(@<\?\|%[<>]\?\%(\d*\|''\)\|_\|#\|{[^}]*\)\?$'}
-  let p.incomplete = {}
-  let p.incomplete.engine = {t -> t =~# '\m^\\%#=\d'}
-  let p.incomplete.decimal = {t -> t =~# '\m^\\%d\d\+'}
-  let p.incomplete.octal = {t -> t =~# '\m^\\%o\o\{1,3}'}
-  let p.incomplete.hex2 = {t -> t =~# '\m^\\%x\x\{1,2}'}
-  let p.incomplete.hex4 = {t -> t =~# '\m^\\%u\x\{1,4}'}
-  let p.incomplete.hex8 = {t -> t =~# '\m^\\%U\x\{1,8}'}
+  let p.incomplete_main =
+        \{t -> t =~# '\m^\\\%(@<\?\|%[<>]\?\%(\d*\|''\)\|_\|#\|{[^}]*\|z\)\?$'}
+  let p.incomplete =
+        \{}
+  let p.incomplete.engine =
+        \{t -> t =~# '\m^\\%#=\d'}
+  let p.incomplete.decimal =
+        \{t -> t =~# '\m^\\%d\d\+'}
+  let p.incomplete.octal =
+        \{t -> t =~# '\m^\\%o\o\{1,3}'}
+  let p.incomplete.hex2 =
+        \{t -> t =~# '\m^\\%x\x\{1,2}'}
+  let p.incomplete.hex4 =
+        \{t -> t =~# '\m^\\%u\x\{1,4}'}
+  let p.incomplete.hex8 =
+        \{t -> t =~# '\m^\\%U\x\{1,8}'}
 
-  let p.is_multi = {t -> index(['*', '\?', '\=', '\+'], t) >= 0
+  let p.is_engine =
+        \{t -> t ==# '\%#='}
+  let p.is_multi =
+        \{t -> index(['*', '\?', '\=', '\+'], t) >= 0
         \ || t=~# '\m^\\{[^}]*}$'}
-  let p.is_multi_bracket = {t -> t =~# '\m^\\{'}
-  let p.is_valid_bracket = {t -> t=~# '\m^\\{-\?\d*,\?\d*\\\?}$'}
-  let p.is_look_around = {t -> t =~# '\m^\\@\%([!=]\|\d*<[!=]\)$'}
-  let p.is_group = {t -> index(['\(', '\%(', ')', '\|', '\&'], t) >= 0}
-  let p.is_zero_width = {t -> index(['^'])}
-  let p.is_invalid_in_optional = {t -> p.is_multi(t) || p.is_group(t)
+  let p.is_multi_bracket =
+        \{t -> t =~# '\m^\\{'}
+  let p.is_valid_bracket =
+        \{t -> t=~# '\m^\\{-\?\d*,\?\d*\\\?}$'}
+  let p.is_look_around =
+        \{t -> t =~# '\m^\\@\%([!=>]\|\d*<[!=]\)$'}
+  let p.is_group =
+        \{t -> index(['\(', '\%(', ')', '\|', '\&'], t) >= 0}
+  let p.is_zero_width =
+        \{t -> index(['^'])}
+  let p.is_invalid_in_optional =
+        \{t -> p.is_multi(t) || p.is_group(t)
         \ || p.is_look_around(t) || p.starts_opt_group(t)}
-  let p.is_back_reference = {t -> t =~# '\m^\\[1-9]$'}
-  let p.starts_with_at = {t -> t =~# '\m^\\@'}
-  let p.has_underscore = {t -> t =~# '\m^\\_.'}
+  let p.is_back_reference =
+        \{t -> t =~# '\m^\\[1-9]$'}
+  let p.starts_with_at =
+        \{t -> t =~# '\m^\\@'}
+  let p.has_underscore =
+        \{t -> t =~# '\m^\\_.'}
   let p.is_valid_underscore =
-        \{t -> t =~# '\m^\\_[iIkKfFpPsSdDxXoOwWhHaAlLuU^$[]$'}
+        \{t -> t =~# '\m^\\_[iIkKfFpPsSdDxXoOwWhHaAlLuU^$[.]$'}
   let p.is_invalid_underscore =
-        \{t -> t =~# '\m^\\_[^iIkKfFpPsSdDxXoOwWhHaAlLuU^$[]$'}
+        \{t -> t =~# '\m^\\_[^iIkKfFpPsSdDxXoOwWhHaAlLuU^$[.]$'}
   let p.is_coll_range =
         \{t -> t =~# '\m^\%(\\[-^\]\\ebnrt]\|[^\\]\)-\%(\\[-^\]\\ebnrt]\|[^\\]\)$'}
-  let p.like_code_point = {t -> t =~# '\m^\\%[douUx]'}
+  let p.is_coll_range_id = {t -> t ==# 'a-b'}
+  let p.like_code_point =
+        \{t -> t =~# '\m^\\%[douUx]'}
   let p.is_code_point =
         \{t -> t =~# '\m^\\%\(d\d\+\|o0\?\o\{1,3}\|x\x\{1,2}\|u\x\{1,4}\|U\x\{1,8}\)$'}
-  let p.is_invalid_percent = {t -> t =~# '\m^\\%[^V#^$C]'}
-  let p.is_mark = {t -> t =~# '\m^\\%[<>]\?''[a-zA-Z0-9''[\]<>]$'}
-  let p.is_lcv = {t -> t =~# '\m^\\%[<>]\?\d*[clv]'}
+  let p.is_invalid_percent =
+        \{t -> t =~# '\m^\\%[^V#^$C]'}
+  let p.is_mark =
+        \{t -> t =~# '\m^\\%[<>]\?''[a-zA-Z0-9''[\]<>]$'}
+  let p.is_lcv =
+        \{t -> t =~# '\m^\\%[<>]\?\d*[clv]'}
+  let p.is_invalid_z =
+        \{t -> t =~# '\m^\\z[^se]\?$'}
 
   " p.id_map {{{
   let p.id_map = {
@@ -181,8 +223,8 @@ function! RELabParser() "{{{
         \'\%(': {'help_tag': '/\%(', 'description': 'Start a pattern enclosed by escaped parentheses.  Just like \(\), but without counting it as a sub-expression.'},
         \'[': {'help_tag': '/[]', 'description': 'This is a sequence of characters enclosed in brackets. It matches any single character in the collection.'},
         \'\_[': {'help_tag': '/\_[]', 'description': 'This is a sequence of characters enclosed in brackets. It matches any single character in the collection.  With "\_" prepended the collection also includes the end-of-line.'},
-        \'\[^': {'help_tag': 'E944', 'description': 'If the sequence begins with "^", it matches any single character NOT in the collection: "[^xyz]" matches anything but ''x'', ''y'' and ''z''.'},
-        \'\[-': {'help_tag': 'E944', 'description': 'If two characters in the sequence are separated by ''-'', this is shorthand for the full list of ASCII characters between them.'},
+        \'[^': {'help_tag': 'E944', 'description': 'If the sequence begins with "^", it matches any single character NOT in the collection: "[^xyz]" matches anything but ''x'', ''y'' and ''z''.'},
+        \'[-': {'help_tag': 'E944', 'description': 'If two characters in the sequence are separated by ''-'', this is shorthand for the full list of ASCII characters between them.'},
         \'[:alnum:]': {'help_tag': '[:alnum:]', 'description': 'Matches ASCII letters and digits'},
         \'[:alpha:]': {'help_tag': '[:alpha:]', 'description': 'Matches ASCII letters'},
         \'[:blank:]': {'help_tag': '[:blank:]', 'description': 'Matches space and tab'},
@@ -228,7 +270,7 @@ function! RELabParser() "{{{
         \'\%#=': {'help_tag': '/\%#=', 'description': 'select regexp engine'},
         \} "}}}
 
-  function! p.is_nothing(node) "{{{
+  function! p.follows_nothing(node) "{{{
     return empty(a:node.previous) || self.is_branch(a:node.previous.id)
           \|| self.is_look_around(a:node.previous.id)
   endfunction "}}}
@@ -309,9 +351,17 @@ function! RELabParser() "{{{
   endfunction "}}}
 
   function! p.to_id(text) "{{{
-    if self.in_collection && a:text =~# '\m^\\[doxuU]'
-      " /[\x]
-      return substitute(a:text, '\m^\\\(.\).\+', '[\\\1', '')
+    if self.in_collection
+      if a:text =~# '\m^\\[doxuU]'
+        " /[\x]
+        return substitute(a:text, '\m^\(\\.\).\+', '[\1', '')
+      elseif self.is_coll_range(a:text)
+        " /[a-z]
+        return 'a-b'
+      elseif a:text =~# '\m^\[[.=].[.=]\]$'
+        " /[[.a.][=a=]]
+        return substitute(a:text, '\m^\(\[[.=]\).[.=]\]$', '[\1\1]', '')
+      endif
     elseif a:text =~# '\m^\\%[<>]\?\d\+[lvc]$'
       " /\%23l
       return substitute(a:text, '\m\d\+', '', '')
@@ -330,12 +380,6 @@ function! RELabParser() "{{{
     elseif a:text =~# '\m^\\%[doxuU]\d\+$'
       " /\%d123
       return matchstr(a:text, '\m\C^\\%[doxuU]')
-    elseif a:text =~# '\m^\[[.=].[.=]\]$'
-      " /[[.a.][=a=]]
-      return substitute(a:text, '\m^\(\[[.=]\).[.=]\]$', '[\1\1]', '')
-    elseif self.is_coll_range(a:text)
-      " /[a-z]
-      return 'a-b'
     elseif a:text =~# '\m^\\%#=.\?'
       " regexp engine
       return '\%#='
@@ -369,12 +413,6 @@ function! RELabParser() "{{{
     return extend(lines, map(copy(self.sequence), 'v:val.description'))
   endfunction "}}}
 
-  function! p.collection_ends() "{{{
-    let pattern = '\m^\(\\.\|[^\]]\)*\]'
-    let ahead = strcharpart(self.input, self.pos)
-    return ahead =~# pattern
-  endfunction "}}}
-
   function! p.in_optional_group() "{{{
     return get(get(self.nest_stack, -1, {}), 'id', '') ==# '\%['
   endfunction "}}}
@@ -390,22 +428,55 @@ function! RELabParser() "{{{
   endfunction "}}}
 
   function! p.incomplete_in_collection() "{{{
-    let current = self.token . strcharpart(self.input, self.pos)
+    let next = self.token . strcharpart(self.input, self.pos)
+    let ahead = strcharpart(self.input, self.pos, 1)
     if self.token =~# '\m^\%(\\[\\ebnrt]\|[^\\]\)-\%(\\[\\ebnrt]\|[^\\]\)$'
+      DbgRELab printf('is_incomplete_in_collection -> range done: %s', next)
       return 0
-    elseif current =~# '\m^\%(\\[\\enbrt]\|[^\\]\)-\%(\\[\\ebnrt]\|[^\\]\)'
+    elseif next =~# '\m^\%(\\[\\enbrt]\|[^\\]\)-\%(\\[\\ebnrt]\|[^\\]\)'
+      DbgRELab printf('is_incomplete_in_collection -> range coming: %s', next)
       return 1
     elseif self.token =~# '\m^\\[-ebnrt\]^]$'
+      DbgRELab printf('is_incomplete_in_collection -> escaped done: %s', next)
       return 0
-    elseif self.token ==# '\'
+    elseif self.token ==# '\' && ahead =~# '\m^[-ebnrtdoxuU\]^]$'
+      DbgRELab printf('is_incomplete_in_collection -> escaped done: %s', next)
       return 1
-    elseif self.token =~# '\m^\[\([.=]\).\1\]$'
+    elseif self.token ==# '\'
+      DbgRELab printf('is_incomplete_in_collection -> escaped coming: %s', next)
       return 0
-    elseif current =~# '\m^\[\([.=]\).\1\]'
+    elseif self.token =~# '\m^\[\([.=]\).\1\]$'
+      DbgRELab printf('is_incomplete_in_collection -> equivalence done: %s', next)
+      return 0
+    elseif next =~# '\m^\[\([.=]\).\1\]'
+      DbgRELab printf('is_incomplete_in_collection -> equivalence coming: %s', next)
       return 1
     elseif self.token =~# '\m^\[:\a\+:\]$'
+      DbgRELab printf('is_incomplete_in_collection -> collation done: %s', next)
       return 0
-    elseif current =~# '\m^\[:\a\+:\]'
+    elseif next =~# '\m^\[:\a\+:\]'
+      DbgRELab printf('is_incomplete_in_collection -> collation coming: %s', next)
+      return 1
+    endif
+    let next = self.token . ahead
+    if next =~# '\m^\\d\d*$'
+      DbgRELab printf('is_incomplete_in_collection -> dec: %s', next)
+      return 1
+    elseif next =~# '\m^\\o0\?\o\{,3}$'
+          \&& printf('0%s', matchstr(next, '0\?\zs\o\+')) <= 0377
+      DbgRELab printf('is_incomplete_in_collection -> oct: %s', next)
+      return 1
+    elseif next =~# '\m^\\x\x\{,2}$'
+      DbgRELab printf('is_incomplete_in_collection -> hex2: %s', next)
+      return 1
+    elseif next =~# '\m^\\u\x\{,4}$'
+      DbgRELab printf('is_incomplete_in_collection -> hex4: %s', next)
+      return 1
+    elseif next =~# '\m^\\U\x\{,8}$'
+      DbgRELab printf('is_incomplete_in_collection -> hex8: %s', next)
+      return 1
+    elseif next =~# '\m^\\[duUx].$'
+      DbgRELab printf('is_incomplete_in_collection -> code point: %s', next)
       return 1
     else
       return 0
@@ -424,6 +495,10 @@ function! RELabParser() "{{{
     return map(copy(self.sequence), 'get(v:val, ''value'', '''')')
   endfunction "}}}
 
+  function! p.descriptions() "{{{
+    return map(copy(self.sequence), 'get(v:val, ''description'', '''')')
+  endfunction "}}}
+
   function! p.ids() "{{{
     return map(copy(self.sequence), 'get(v:val, ''id'', '''')')
   endfunction "}}}
@@ -437,14 +512,6 @@ function! RELabParser() "{{{
     call add(error, printf('Error: %s', (a:0 ? a:1 : a:node.value . ':')))
     let a:node.error = error
     call add(self.errors, a:node)
-  endfunction "}}}
-
-  function! p.in_opt_group(node) "{{{
-    return get(get(self.nest_stack, -1, {}), 'normal', '') ==# '\%['
-  endfunction "}}}
-
-  function! p.in_collection(node) "{{{
-    return get(get(self.nest_stack, -1, {}), 'normal', '') ==# '['
   endfunction "}}}
 
   function! p.is_incomplete() "{{{
@@ -509,41 +576,41 @@ function! RELabParser() "{{{
       let node = self.new_child()
       DbgRELab printf('parse -> token: %s, id: %s', node.value, node.id)
 
-      if self.in_collection "{{{
-        DbgRELab  'parse -> collection'
-        if self.ends_collection(node.id)
-          DbgRELab  'parse -> collection -> ends collection'
-          call remove(self.nest_stack, -1)
-          let self.parent = node.parent.parent
-          let self.in_collection = 0
-          let node.nesting_level -= 1
-          let node.description =
-                \printf('%s%s => %s', repeat('  ', node.nesting_level), node.value,
-                \  'ends collection.')
-        elseif self.is_coll_range(node.value)
-          DbgRELab printf('parse -> collection -> range')
-          if node.value[0] ==# '\'
-            let first = strcharpart(node.value, 0, 2)
-            let second = strcharpart(node.value, 3)
-          else
-            let first = strcharpart(node.value, 0, 1)
-            let second = strcharpart(node.value, 2)
-          endif
-          let dict = {'\e': "\e", '\b': "\b", '\n': "\n", '\r': "\r", '\t': "\t",
-                \'\\': '\', '\]': ']', '\^': '^', '\-': '-'}
-          let first = get(dict, first, first)
-          DbgRELab  printf('parse -> collection -> range: first: %s, second: %s', first, second)
-          let second = get(dict, second, second)
-          if first ># second
-            let errormessage = 'reverse range in character class'
-            call self.add_error(node, errormessage)
-          endif
+      if self.in_collection && self.ends_collection(node.id) "{{{
+        DbgRELab  'parse -> ends collection'
+        call remove(self.nest_stack, -1)
+        let self.parent = node.parent.parent
+        let self.in_collection = 0
+        let node.nesting_level -= 1
+        let node.description =
+              \printf('%s%s => %s', repeat('  ', node.nesting_level), node.value,
+              \  'ends collection.')
+        "}}}
+
+      elseif self.in_collection && self.is_coll_range_id(node.id) "{{{
+        DbgRELab printf('parse -> collection -> range')
+        if node.value[0] ==# '\'
+          let first = strcharpart(node.value, 0, 2)
+          let second = strcharpart(node.value, 3)
         else
-          DbgRELab  'parse -> collection -> else'
+          let first = strcharpart(node.value, 0, 1)
+          let second = strcharpart(node.value, 2)
+        endif
+        let dict = {'\e': "\e", '\b': "\b", '\n': "\n", '\r': "\r", '\t': "\t",
+              \'\\': '\', '\]': ']', '\^': '^', '\-': '-'}
+        let first = get(dict, first, first)
+        DbgRELab  printf('parse -> collection -> range: first: %s, second: %s', first, second)
+        let second = get(dict, second, second)
+        if first ># second
+          let errormessage = 'reverse range in character class'
+          call self.add_error(node, errormessage)
+        else
+          let description = printf('matches a character in the range from "%s" to "%s"', first, second)
+          let node.description = self.description(node, description)
         endif
         "}}}
 
-      elseif node.id ==# '\%#=' "{{{
+      elseif self.is_engine(node.id) "{{{
         DbgRELab  printf('parse -> engine')
         if matchstr(node.value, '^\m\\%#=\zs.\?') !~# '\m^[0-2]$'
           let errormessage =
@@ -565,7 +632,7 @@ function! RELabParser() "{{{
         let self.parent = node
         if self.starts_collection(node.id)
           DbgRELab  printf('parse -> starts group -> collection')
-          if self.collection_ends()
+          if self.collection_ends(self)
             " The collection is terminated by a ']', so treat this as the
             " start of the collection
             let self.in_collection = 1
@@ -575,6 +642,7 @@ function! RELabParser() "{{{
             let node.description = printf('%s%s => Matches the character "[".',
                   \repeat('  ', node.nesting_level),
                   \node.value)
+            let node.id = 'x'
           endif
         elseif self.starts_capt_group(node.id)
           DbgRELab  printf('parse -> starts group -> capturing group')
@@ -639,7 +707,7 @@ function! RELabParser() "{{{
           let errormessage =
                 \printf('%s can not follow a multi', node.value)
           call self.add_error(node, errormessage)
-        elseif self.is_nothing(node)
+        elseif self.follows_nothing(node)
           DbgRELab  printf('parse -> multi -> follows nothing')
           let errormessage =
                 \printf('%s follows nothing', node.value)
@@ -690,18 +758,20 @@ function! RELabParser() "{{{
 
       elseif self.is_look_around(node.id) "{{{
         DbgRELab  printf('parse -> look around')
-        if strcharpart(node.value, 1, 1) > self.capt_groups
+        if self.follows_nothing(node)
           DbgRELab  printf('parse -> look around -> illegal')
-          let errormessage = 'illegal back reference'
+          let errormessage = printf('%s follows nothing', node.value)
           call self.add_error(node, errormessage)
         endif
         "}}}
 
       elseif self.starts_with_at(node.id) "{{{
         DbgRELab  printf('parse -> starts with @')
-        let errormessage = printf('invalid character after %s',
-              \(node.magic ==# 'v' ? '@' : '\@'))
-        call self.add_error(node, errormessage)
+        if node.id !=# '\@>'
+          let errormessage = printf('invalid character after %s',
+                \(node.magic ==# 'v' ? '@' : '\@'))
+          call self.add_error(node, errormessage)
+        endif
         "}}}
 
       elseif self.like_code_point(node.id) "{{{
@@ -731,6 +801,13 @@ function! RELabParser() "{{{
         call self.add_error(node, errormessage)
         "}}}
 
+      elseif self.is_invalid_z(node.id) "{{{
+        DbgRELab  printf('parse -> invalid percent')
+        let errormessage = printf('invalid character after %s',
+              \matchstr(node.value, '\\\?z'))
+        call self.add_error(node, errormessage)
+        "}}}
+
       elseif self.is_magic(node.id) "{{{
         DbgRELab  printf('parse -> magic')
         let self.magic = node.id[1]
@@ -742,7 +819,7 @@ function! RELabParser() "{{{
 
       else
         DbgRELab  printf('parse -> literal match')
-        "let node.id = 'x'
+        let node.id = 'x'
       endif
     endwhile
     if !empty(self.nest_stack)
@@ -841,226 +918,449 @@ function! RELabTest() "{{{
   let expected = []
   let output = p.parse(input).normals()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '^'
   let expected = ['^']
   let output = p.parse(input).normals()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '^a\+'
   let expected = ['^', 'a', '\+']
   let output = p.parse(input).normals()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '^a\+\vb+'
   let expected = ['^', 'a', '\+', '\v', 'b', '\+']
   let output = p.parse(input).normals()
   call assert_equal(expected, output, input)
-
-  let input =     '\)'
-  let expected = ['^^', 'Error: unmatched \)']
-  let output = p.parse(input).lines()
-  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\{}'
   let expected = ['.', '\{}']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\{1}'
   let expected = ['.', '\{n}']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\{1,}'
   let expected = ['.', '\{n,}']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\{1,2}'
   let expected = ['.', '\{n,m}']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\{,2}'
   let expected = ['.', '\{,m}']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\{,}'
   let expected = ['.', '\{,}']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\{-}'
   let expected = ['.', '\{-}']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\{-1}'
   let expected = ['.', '\{-n}']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\{-1,}'
   let expected = ['.', '\{-n,}']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\{-1,2}'
   let expected = ['.', '\{-n,m}']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\{-,2}'
   let expected = ['.', '\{-,m}']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\{-,}'
   let expected = ['.', '\{-,}']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\?'
   let expected = ['.', '\?']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\='
   let expected = ['.', '\=']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.*'
   let expected = ['.', '*']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '.\+'
   let expected = ['.', '\+']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '\v\1'
   let expected = ['\v', '\1']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\%x1234'
-  let expected = ['\%x', '3', '4']
+  let expected = ['\%x', 'x', 'x']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '\%o1234'
-  let expected = ['\%o', '4']
+  let expected = ['\%o', 'x']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '\%o0377'
   let expected = ['\%o']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '\%o377'
   let expected = ['\%o']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '\%o400'
-  let expected = ['\%o', '0']
+  let expected = ['\%o', 'x']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '\%o0400'
-  let expected = ['\%o', '0']
+  let expected = ['\%o', 'x']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
 
   let input =     '\%#=0'
   let expected = ['\%#=']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     'a\@>'
+  let expected = ['x', '\@>']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\_.'
+  let expected = ['\_.']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\a'
+  let expected = ['\a']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\_a'
+  let expected = ['\_a']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '.\@!'
+  let expected = ['.', '\@!']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     'a\zsb'
+  let expected = ['x', '\zs', 'x']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     'a\zeb'
+  let expected = ['x', '\ze', 'x']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[ab]'
+  let expected = ['[', 'x', 'x', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[ab'
+  let expected = ['x', 'x', 'x']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[\d1234]'
+  let expected = ['[', '[\d', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[\o123]'
+  let expected = ['[', '[\o', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[\x12]'
+  let expected = ['[', '[\x', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[\u1234]'
+  let expected = ['[', '[\u', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[\U12345678]'
+  let expected = ['[', '[\U', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[\U123456789]'
+  let expected = ['[', '[\U', 'x', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[a-b]'
+  let expected = ['[', 'a-b', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[\%]'
+  let expected = ['[', 'x', 'x', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\)'
+  let expected = ['^^', 'Error: unmatched \)']
+  let output = p.parse(input).lines()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
+
+  let input =     'a\zb'
+  let expected = ['-^^^', 'Error: invalid character after \z']
+  let output = p.parse(input).lines()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\%['
   let expected = ['^^^', 'Error: missing ] after \%[']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\%[a*]'
   let expected = ['----^', 'Error: * is not valid inside \%[]']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\%[\(]'
   let expected = ['---^^', 'Error: \( is not valid inside \%[]']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '.**'
   let expected = ['--^', 'Error: * can not follow a multi']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\%#=4'
   let expected = ['^^^^^', 'Error: \%#= can only be followed by 0, 1, or 2']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '[b-a]'
   let expected = ['-^^^', 'Error: reverse range in character class']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\%[]'
   let expected = ['---^', 'Error: empty \%[]']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\1'
   let expected = ['^^', 'Error: illegal back reference']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\(\)\2'
   let expected = ['----^^', 'Error: illegal back reference']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\(\)\(\)\(\)\(\)\(\)\(\)\(\)\(\)\(\)\(\)'
   let expected = ['------------------------------------^^', 'Error: more than 9 capturing groups']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '.\@x'
   let expected = ['-^^^', 'Error: invalid character after \@']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\_b'
   let expected = ['^^^', 'Error: invalid use of \_']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\+'
   let expected = ['^^', 'Error: \+ follows nothing']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\%dx'
   let expected = ['^^^^', 'Error: invalid character after \%d']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\%g'
   let expected = ['^^^', 'Error: invalid character after \%']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '.\{a}'
   let expected = ['-^^^^', 'Error: syntax error in \{a}']
   let output = p.parse(input).lines()
   call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
+
+  let input =     '\@!'
+  let expected = ['^^^', 'Error: \@! follows nothing']
+  let output = p.parse(input).lines()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let g:relab_debug = 0
   for e in v:errors

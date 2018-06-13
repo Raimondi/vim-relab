@@ -50,6 +50,12 @@ syn match relabCollItem /\[\%(:\a\+:\|\..\.\|=.=\)\]/ contained containedin=rela
 syn match relabCollItem /.-./ contained containedin=relabCollection,relabVNCollection,relabNCollection,relabVCollection
 syn match relabCollItem /\\[-ebnrt\]^]/ contained containedin=relabCollection,relabVNCollection,relabNCollection,relabVCollection
 
+syn match relabCollCodePoint /\\d\d\+/ contained containedin=relabCollection contains=relabCodePointDecDigits
+syn match relabCollCodePoint /\\o0\?\%([1-3]\o\{2}\|\o\{,2}\)/ contained containedin=relabCollection contains=relabCodePointOctDigits
+syn match relabCollCodePoint /\\x\x\{,2}/ contained containedin=relabCollection contains=relabCodePointHexDigits
+syn match relabCollCodePoint /\\u\x\{,4}/ contained containedin=relabCollection contains=relabCodePointHexDecDigits
+syn match relabCollCodePoint /\\U\x\{,8}/ contained containedin=relabCollection contains=relabCodePointHexDecDigits
+
 syn region relabOptional matchgroup=relabGroup start=/\\%\[/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=relabMagic
 syn region relabVNOptional matchgroup=relabGroup start=/\\%\[/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=relabVNMagic
 syn region relabNOptional matchgroup=relabGroup start=/\\%\[/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=relabNMagic
@@ -108,9 +114,9 @@ syn match relabCodePoint /%u\x\{,4}/ contained containedin=relabVMagic,relabVOpt
 syn match relabCodePoint /\\%U\x\{,8}/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional contains=relabCodePointHexDigits
 syn match relabCodePoint /%U\x\{,8}/ contained containedin=relabVMagic,relabVOptional contains=relabCodePointHexDigits
 
-syn match relabCodePointDecDigits /%\@1<!\d/ contained containedin=relabCodePoint
-syn match relabCodePointOctDigits /%\@1<!\o/ contained containedin=relabCodePoint
-syn match relabCodePointHexDigits /%\@1<!\x/ contained containedin=relabCodePoint
+syn match relabCodePointDecDigits /\d/ contained containedin=relabCodePoint
+syn match relabCodePointOctDigits /\o/ contained containedin=relabCodePoint
+syn match relabCodePointHexDigits /\x/ contained containedin=relabCodePoint
 
 syn match relabBackslash /\\\\/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabVMagic,relabOptional,relabNOptional,relabVNOptional,relabVOptional,relabCollection,relab.NCollection,relabVNCollection,relabVCollection
 
@@ -129,6 +135,7 @@ hi def link relabMultiDigits		Constant
 hi def link relabLookaround		Special
 hi def link relabLookaroundDigits	Constant
 hi def link relabCollItem		Constant
+hi def link relabCollCodePoint		Constant
 hi def link relabCharClass		Constant
 hi def link relabBEOL			Special
 hi def link relabBEOF			Special
