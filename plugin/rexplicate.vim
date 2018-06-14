@@ -271,16 +271,18 @@ function! RExplicateParser() "{{{
     let self.errors = []
     let self.sequence = []
 
-    let self.root = {}
-    let self.root.value = 'root'
-    let self.root.normal = 'root'
-    let self.root.id = 'root'
-    let self.root.magic = self.magic
-    let self.root.parent = {}
-    let self.root.siblings = []
-    let self.root.children = []
-    let self.root.help = 'pattern'
+    let r = {}
+    let r.value = 'root'
+    let r.normal = 'root'
+    let r.id = 'root'
+    let r.magic = self.magic
+    let r.parent = {}
+    let r.siblings = []
+    let r.children = []
+    let r.help = 'pattern'
+    let r.indent = 0
 
+    let self.root = r
     let self.parent = self.root
     return self
   endfunction "}}}
@@ -316,12 +318,12 @@ function! RExplicateParser() "{{{
     let n.parent = self.parent
     let n.siblings = self.parent.children
     let n.children = []
-    let n.nesting_level = len(self.nest_stack)
     let n.previous = get(self.parent.children, -1, {})
     let n.next = {}
     let n.normal = self.to_magic(self.token, self.magic)
     let n.id = self.to_id(n.normal)
     let n.help_tag = self.help_tag(n)
+    let n.indent += 1
     let n.value = self.token
     let n.description = self.description(n)
     let n.pos = self.pos - strchars(self.token)
@@ -383,7 +385,7 @@ function! RExplicateParser() "{{{
       let char = a:node.value =~# '^\\.' ? a:node.id[1:] : a:node.id
       let msg = printf('Matches the character "%s"', char)
     endif
-    let indent = repeat('  ', a:node.nesting_level)
+    let indent = repeat('  ', a:node.indent)
     return printf('%s%s => %s', indent, a:node.value, msg)
   endfunction "}}}
 
@@ -410,7 +412,7 @@ function! RExplicateParser() "{{{
     return 0
   endfunction "}}}
 
-  function! p.sequence_of(key) "{{{
+  function! p.map(key) "{{{
     return map(copy(self.sequence), 'get(v:val, a:key, '''')')
   endfunction "}}}
 
@@ -576,16 +578,21 @@ function! RExplicateParser() "{{{
         call remove(self.nest_stack, -1)
         let self.parent = node.parent.parent
         let self.in_collection = 0
-        let node.nesting_level -= 1
-        let node.description =
-              \printf('%s%s => %s', repeat('  ', node.nesting_level), node.value,
-              \  'ends collection.')
+        let node.indent -= 1
+        let node.description = self.description(node, 'ends collection')
         "}}}
 
-      elseif self.in_collection && empty(node.previous) && node.id ==# '^' "{{{
+      elseif self.in_collection && node.id ==# '^' "{{{
         DbgRExplicate printf('parse -> collection -> negate')
-        let node.id = '[^'
-        let node.description = self.description(node)
+        if empty(node.previous)
+          DbgRExplicate printf('parse -> collection -> negate -> special')
+          let node.id = '[^'
+          let node.description = self.description(node)
+        else
+          DbgRExplicate printf('parse -> collection -> negate -> literal')
+          let node.id = 'x'
+          let node.description = self.description(node)
+        endif
         "}}}
 
       elseif self.in_collection && self.is_coll_range_id(node.id) "{{{
@@ -620,6 +627,20 @@ function! RExplicateParser() "{{{
         endif
         "}}}
 
+      elseif self.is_branch(node.id) "{{{
+        DbgRExplicate  printf('parse -> is_branch')
+        " Move node one level up in the hierarchy
+        call remove(node.siblings, -1)
+        call add(node.parent.siblings, node)
+        let node.parent.next = node
+        let node.previous = node.parent
+        let node.siblings = node.parent.siblings
+        let node.parent = node.parent.parent
+        let node.indent -= 1
+        let node.description = self.description(node)
+        let self.parent = node
+        "}}}
+
       elseif self.in_optional_group() && self.is_invalid_in_optional(node.id) "{{{
         DbgRExplicate  printf('parse -> invalid in optional')
         let errormessage =
@@ -641,7 +662,7 @@ function! RExplicateParser() "{{{
             " Treat this as a literal character
             call remove(self.nest_stack, -1)
             let node.description = printf('%s%s => Matches the character "[".',
-                  \repeat('  ', node.nesting_level),
+                  \repeat('  ', node.indent),
                   \node.value)
             let node.id = 'x'
           endif
@@ -661,16 +682,14 @@ function! RExplicateParser() "{{{
           DbgRExplicate  printf('parse -> ends group -> is paired')
           call remove(self.nest_stack, -1)
           let self.parent = node.parent.parent
-          let node.nesting_level -= 1
+          let node.indent -= 1
           if self.ends_opt_group(node.id)
             DbgRExplicate  printf('parse -> ends group -> is paired -> opt group')
             if empty(node.previous)
               let errormessage = printf('empty %s%s', node.parent.value, node.value)
               call self.add_error(node, errormessage)
             else
-              let node.description =
-                    \printf('%s%s => %s', repeat('  ', node.nesting_level), node.value,
-                    \  'ends optional sequence.')
+              let node.description = self.description(node, 'ends optional sequence')
             endif
           else
             let node.description = self.description(node)
@@ -1268,7 +1287,7 @@ function! RExplicateTest() "{{{
   call assert_false(has_error, input)
 
   let input =     '[^]'
-  let expected = ['x', 'x', 'x']
+  let expected = ['x', '^', 'x']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
@@ -1289,14 +1308,14 @@ function! RExplicateTest() "{{{
   call assert_false(has_error, input)
 
   let input =     '^^'
-  let expected = ['^', 'x']
+  let expected = ['^', '^']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '^^\|^^'
-  let expected = ['^', 'x', '\|', '^', 'x']
+  let expected = ['^', '^', '\|', '^', '^']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
