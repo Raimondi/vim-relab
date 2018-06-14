@@ -898,8 +898,7 @@ function! RExplicateSetUp(regexp) "{{{
     else
       edit rexplicate
     endif
-    set filetype=rexplicate
-    set buftype=nofile
+    setlocal filetype=rexplicate buftype=nofile noundofile noswapfile
     let s:bufnr = bufnr('%')
     augroup RExplicate
       autocmd!
