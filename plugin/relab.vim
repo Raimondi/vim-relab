@@ -1,4 +1,3 @@
-let s:file = printf('%s/relab', expand('<sfile>:p:h'))
 function! RELabSetLayout() "{{{
   botright vsplit RELabResult
   let g:winresult = win_getid()
@@ -36,28 +35,12 @@ function! RELabParser() "{{{
         \{t -> t ==# ']'}
   let p.ends_collection =
         \{t -> t ==# ']'}
-  let p.collection_ends =
-        \{s -> strcharpart(s.input, s.pos) =~# '\m^\(\\.\|[^\]]\)*\]'}
 
   let p.item_or_eol =
         \{t -> t =~# '\m^\\_[$^.iIkKfFpPsSdDxXoOwWhHaAlLuU]$'}
 
   let p.incomplete_main =
         \{t -> t =~# '\m^\\\%(@<\?\|%[<>]\?\%(\d*\|''\)\|_\|#\|{[^}]*\|z\)\?$'}
-  let p.incomplete =
-        \{}
-  let p.incomplete.engine =
-        \{t -> t =~# '\m^\\%#=\d'}
-  let p.incomplete.decimal =
-        \{t -> t =~# '\m^\\%d\d\+'}
-  let p.incomplete.octal =
-        \{t -> t =~# '\m^\\%o\o\{1,3}'}
-  let p.incomplete.hex2 =
-        \{t -> t =~# '\m^\\%x\x\{1,2}'}
-  let p.incomplete.hex4 =
-        \{t -> t =~# '\m^\\%u\x\{1,4}'}
-  let p.incomplete.hex8 =
-        \{t -> t =~# '\m^\\%U\x\{1,8}'}
 
   let p.is_engine =
         \{t -> t ==# '\%#='}
@@ -397,7 +380,7 @@ function! RELabParser() "{{{
     elseif has_key(self.id_map, a:node.id)
       let msg = get(get(self.id_map, a:node.id, {}), 'description', '')
     else
-      let char = a:node.id =~# '^\\.' ? a:node.id[1:] : a:node.id
+      let char = a:node.value =~# '^\\.' ? a:node.id[1:] : a:node.id
       let msg = printf('Matches the character "%s"', char)
     endif
     let indent = repeat('  ', a:node.nesting_level)
@@ -427,10 +410,53 @@ function! RELabParser() "{{{
     return 0
   endfunction "}}}
 
+  function! p.sequence_of(key) "{{{
+    return map(copy(self.sequence), 'get(v:val, a:key, '''')')
+  endfunction "}}}
+
+  function! p.normals() "{{{
+    return map(copy(self.sequence), 'get(v:val, ''normal'', '''')')
+  endfunction "}}}
+
+  function! p.values() "{{{
+    return map(copy(self.sequence), 'get(v:val, ''value'', '''')')
+  endfunction "}}}
+
+  function! p.descriptions() "{{{
+    return map(copy(self.sequence), 'get(v:val, ''description'', '''')')
+  endfunction "}}}
+
+  function! p.ids() "{{{
+    return map(copy(self.sequence), 'get(v:val, ''id'', '''')')
+  endfunction "}}}
+
+  function! p.collection_ends() "{{{
+    let ahead = strcharpart(self.input, self.pos)
+    if ahead[0] ==# '^'
+      return ahead =~# '\m^\^\%(\\[-ebrtndoxuU^$\]]\|[^\]]\)\+]'
+    else
+      return ahead =~# '\m^\%(\\[-ebrtndoxuU^$\]]\|[^\]]\)\+]'
+    endif
+  endfunction "}}}
+
+  function! p.add_error(node, ...) "{{{
+    let a:node.is_error = 1
+    let error = []
+    let arrow = printf('%s%s',
+          \repeat('-', a:node.pos), repeat('^', strchars(a:node.value)))
+    call add(error, arrow)
+    call add(error, printf('Error: %s', (a:0 ? a:1 : a:node.value . ':')))
+    let a:node.error = error
+    call add(self.errors, a:node)
+  endfunction "}}}
+
   function! p.incomplete_in_collection() "{{{
     let next = self.token . strcharpart(self.input, self.pos)
     let ahead = strcharpart(self.input, self.pos, 1)
-    if self.token =~# '\m^\%(\\[\\ebnrt]\|[^\\]\)-\%(\\[\\ebnrt]\|[^\\]\)$'
+    if empty(self.parent.children) && self.token ==# '^'
+      DbgRELab printf('is_incomplete_in_collection -> negate: %s', next)
+      return 0
+    elseif self.token =~# '\m^\%(\\[\\ebnrt]\|[^\\]\)-\%(\\[\\ebnrt]\|[^\\]\)$'
       DbgRELab printf('is_incomplete_in_collection -> range done: %s', next)
       return 0
     elseif next =~# '\m^\%(\\[\\enbrt]\|[^\\]\)-\%(\\[\\ebnrt]\|[^\\]\)'
@@ -481,37 +507,6 @@ function! RELabParser() "{{{
     else
       return 0
     endif
-  endfunction "}}}
-
-  function! p.sequence_of(key) "{{{
-    return map(copy(self.sequence), 'get(v:val, a:key, '''')')
-  endfunction "}}}
-
-  function! p.normals() "{{{
-    return map(copy(self.sequence), 'get(v:val, ''normal'', '''')')
-  endfunction "}}}
-
-  function! p.values() "{{{
-    return map(copy(self.sequence), 'get(v:val, ''value'', '''')')
-  endfunction "}}}
-
-  function! p.descriptions() "{{{
-    return map(copy(self.sequence), 'get(v:val, ''description'', '''')')
-  endfunction "}}}
-
-  function! p.ids() "{{{
-    return map(copy(self.sequence), 'get(v:val, ''id'', '''')')
-  endfunction "}}}
-
-  function! p.add_error(node, ...) "{{{
-    let a:node.is_error = 1
-    let error = []
-    let arrow = printf('%s%s',
-          \repeat('-', a:node.pos), repeat('^', strchars(a:node.value)))
-    call add(error, arrow)
-    call add(error, printf('Error: %s', (a:0 ? a:1 : a:node.value . ':')))
-    let a:node.error = error
-    call add(self.errors, a:node)
   endfunction "}}}
 
   function! p.is_incomplete() "{{{
@@ -587,6 +582,12 @@ function! RELabParser() "{{{
               \  'ends collection.')
         "}}}
 
+      elseif self.in_collection && empty(node.previous) && node.id ==# '^' "{{{
+        DbgRELab printf('parse -> collection -> negate')
+        let node.id = '[^'
+        let node.description = self.description(node)
+        "}}}
+
       elseif self.in_collection && self.is_coll_range_id(node.id) "{{{
         DbgRELab printf('parse -> collection -> range')
         if node.value[0] ==# '\'
@@ -632,7 +633,7 @@ function! RELabParser() "{{{
         let self.parent = node
         if self.starts_collection(node.id)
           DbgRELab  printf('parse -> starts group -> collection')
-          if self.collection_ends(self)
+          if self.collection_ends()
             " The collection is terminated by a ']', so treat this as the
             " start of the collection
             let self.in_collection = 1
@@ -1246,6 +1247,62 @@ function! RELabTest() "{{{
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
+  let input =     '[^a]'
+  let expected = ['[', '[^', 'x', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[^-a]'
+  let expected = ['[', '[^', 'x', 'x', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[-a]'
+  let expected = ['[', 'x', 'x', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[^]'
+  let expected = ['x', 'x', 'x']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[]'
+  let expected = ['x', 'x']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[^-]'
+  let expected = ['[', '[^', 'x', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '^^'
+  let expected = ['^', 'x']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '^^\|^^'
+  let expected = ['^', 'x', '\|', '^', 'x']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
   let input =     '\)'
   let expected = ['^^', 'Error: unmatched \)']
   let output = p.parse(input).lines()
@@ -1379,13 +1436,18 @@ function! RELabTest() "{{{
   let has_error = !empty(p.errors)
   call assert_true(has_error, input)
 
-  let g:relab_debug = 0
-  for e in v:errors
-    echohl WarningMsg
-    echom  'Test failed: '
+  if !empty(v:errors)
+    let g:relab_debug = 0
+    echohl ErrorMsg
+    echom printf('%s error(s) found:', len(v:errors))
     echohl Normal
-    echon e
-  endfor
+    for e in v:errors
+      echohl WarningMsg
+      echom  'Test failed: '
+      echohl Normal
+      echon e
+    endfor
+  endif
   let g:relab_debug = debug
 endfunction "}}}
 
