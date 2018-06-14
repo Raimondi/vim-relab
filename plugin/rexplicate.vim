@@ -205,6 +205,7 @@ function! RExplicateParser() "{{{
         \'\9': {'help_tag': '/\9', 'description': 'Matches the same string that was matched by the ninth sub-expression in \( and \).'},
         \'\%(': {'help_tag': '/\%(', 'description': 'Start a pattern enclosed by escaped parentheses.  Just like \(\), but without counting it as a sub-expression.'},
         \'[': {'help_tag': '/[]', 'description': 'This is a sequence of characters enclosed in brackets. It matches any single character in the collection.'},
+        \']': {'help_tag': '/[]', 'description': 'Ends the collection'},
         \'\_[': {'help_tag': '/\_[]', 'description': 'This is a sequence of characters enclosed in brackets. It matches any single character in the collection.  With "\_" prepended the collection also includes the end-of-line.'},
         \'[^': {'help_tag': 'E944', 'description': 'If the sequence begins with "^", it matches any single character NOT in the collection: "[^xyz]" matches anything but ''x'', ''y'' and ''z''.'},
         \'[-': {'help_tag': 'E944', 'description': 'If two characters in the sequence are separated by ''-'', this is shorthand for the full list of ASCII characters between them.'},
@@ -237,6 +238,7 @@ function! RExplicateParser() "{{{
         \'[\u': {'help_tag': '/\]', 'description': 'Matches a hex. number of multibyte character up to 0xffff'},
         \'[\U': {'help_tag': '/\]', 'description': 'Matches a hex. number of multibyte character up to 0xffffffff'},
         \'\%[': {'help_tag': '/\%[]', 'description': 'A sequence of optionally matched atoms.  This always matches.'},
+        \'\%]': {'help_tag': '/\%[]', 'description': 'Ends optional group'},
         \'\%d': {'help_tag': '/\%d', 'description': 'Matches the character specified with a decimal number.  Must be followed by a non-digit.'},
         \'\%o': {'help_tag': '/\O', 'description': 'Matches the character specified with an octal number up to 0377.  Numbers below 040 must be followed by a non-octal digit or a non-digit.'},
         \'\%x': {'help_tag': '/\%x', 'description': 'Matches the character specified with up to two hexadecimal characters.'},
@@ -579,7 +581,7 @@ function! RExplicateParser() "{{{
         let self.parent = node.parent.parent
         let self.in_collection = 0
         let node.indent -= 1
-        let node.description = self.description(node, 'ends collection')
+        let node.description = self.description(node)
         "}}}
 
       elseif self.in_collection && node.id ==# '^' "{{{
@@ -689,6 +691,7 @@ function! RExplicateParser() "{{{
               let errormessage = printf('empty %s%s', node.parent.value, node.value)
               call self.add_error(node, errormessage)
             else
+              let node.id = '\%]'
               let node.description = self.description(node, 'ends optional sequence')
             endif
           else
@@ -1259,7 +1262,7 @@ function! RExplicateTest() "{{{
   call assert_false(has_error, input)
 
   let input =     '\V\%[a]'
-  let expected = ['\V', '\%[', 'x', ']']
+  let expected = ['\V', '\%[', 'x', '\%]']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
