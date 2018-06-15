@@ -38,10 +38,8 @@ function! RExplicateParser() "{{{
 
   let p.item_or_eol =
         \{t -> t =~# '\m^\\_[$^.iIkKfFpPsSdDxXoOwWhHaAlLuU]$'}
-
   let p.incomplete_main =
-        \{t -> t =~# '\m^\\\%(@<\?\|%[<>]\?\%(\d*\|''\)\|_\|#\|{[^}]*\|z\)\?$'}
-
+        \{t -> t =~# '\m^\\\%(@\%(\d*\%(<\?\)\)\|%[<>]\?\%(\d*\|''\)\|_\|#\|{[^}]*\|z\)\?$'}
   let p.is_engine =
         \{t -> t ==# '\%#='}
   let p.is_multi =
@@ -111,9 +109,9 @@ function! RExplicateParser() "{{{
         \'\@=': {'help_tag': '/\@=', 'line': 'Matches the preceding atom with zero width.'},
         \'\@!': {'help_tag': '/\@!', 'line': 'Matches with zero width if the preceding atom does NOT match at the current position.'},
         \'\@<=': {'help_tag': '/\@<=', 'line': 'Matches with zero width if the preceding atom matches just before what follows.'},
-        \'\@123<=': {'help_tag': '/\@<=', 'line': 'Matches with zero width if the preceding atom matches just before what follows but only look bacl 123 bytes.'},
+        \'\@123<=': {'help_tag': '/\@<=', 'line': 'Matches with zero width if the preceding atom matches just before what follows but only look bacl %s bytes.'},
         \'\@<!': {'help_tag': '/\@<!', 'line': 'Matches with zero width if the preceding atom does NOT match just before what follows.'},
-        \'\@123<!': {'help_tag': '/\@<!', 'line': 'Matches with zero width if the preceding atom does NOT match just before what follows but only look back 123 bytes.'},
+        \'\@123<!': {'help_tag': '/\@<!', 'line': 'Matches with zero width if the preceding atom does NOT match just before what follows but only look back %s bytes.'},
         \'\@>': {'help_tag': '/\@>', 'line': 'Matches the preceding atom like matching a whole pattern.'},
         \'^' : {'help_tag': '/^', 'line': 'At beginning of pattern or after "\|", "\(", "\%(" or "\n": matches start-of-line with zero width; at other positions, matches literal ''^''.'},
         \'\_^': {'help_tag': '/\_^', 'line': 'Matches start-of-line. zero-width  Can be used at any position in the pattern.'},
@@ -132,15 +130,15 @@ function! RExplicateParser() "{{{
         \'\%''m': {'help_tag': '/\%''m', 'line': 'Matches with the position of mark m with zero width.'},
         \'\%<''m': {'help_tag': '/\%<''m', 'line': 'Matches before the position of mark m with zero width.'},
         \'\%>''m': {'help_tag': '/\%>''m', 'line': 'Matches after the position of mark m with zero width.'},
-        \'\%23l': {'help_tag': '/\%l', 'line': 'Matches in a specific line with zero width.'},
-        \'\%<23l': {'help_tag': '/\%>l', 'line': 'Matches above a specific line (lower line number) with zero width.'},
-        \'\%>23l': {'help_tag': '/\%<l', 'line': 'Matches below a specific line (higher line number) with zero width.'},
-        \'\%23c': {'help_tag': '/\%c', 'line': 'Matches in a specific column with zero width.'},
-        \'\%<23c': {'help_tag': '/\%>c', 'line': 'Matches before a specific column with zero width.'},
-        \'\%>23c': {'help_tag': '/\%<c', 'line': 'Matches after a specific column with zero width.'},
-        \'\%23v': {'help_tag': '/\%v', 'line': 'Matches in a specific virtual column with zero width.'},
-        \'\%<23v': {'help_tag': '/\%>v', 'line': 'Matches before a specific virtual column with zero width.'},
-        \'\%>23v': {'help_tag': '/\%<v', 'line': 'Matches after a specific virtual column with zero width.'},
+        \'\%l': {'help_tag': '/\%l', 'line': 'Matches in a specific line with zero width.'},
+        \'\%<l': {'help_tag': '/\%>l', 'line': 'Matches above a specific line (lower line number) with zero width.'},
+        \'\%>l': {'help_tag': '/\%<l', 'line': 'Matches below a specific line (higher line number) with zero width.'},
+        \'\%c': {'help_tag': '/\%c', 'line': 'Matches in a specific column with zero width.'},
+        \'\%<c': {'help_tag': '/\%>c', 'line': 'Matches before a specific column with zero width.'},
+        \'\%>c': {'help_tag': '/\%<c', 'line': 'Matches after a specific column with zero width.'},
+        \'\%v': {'help_tag': '/\%v', 'line': 'Matches in a specific virtual column with zero width.'},
+        \'\%<v': {'help_tag': '/\%>v', 'line': 'Matches before a specific virtual column with zero width.'},
+        \'\%>v': {'help_tag': '/\%<v', 'line': 'Matches after a specific virtual column with zero width.'},
         \'\i': {'help_tag': '/\i', 'line': 'Matches an identifier character (see ''isident'' option)'},
         \'\I': {'help_tag': '/\I', 'line': 'Matches an identifier character, but excluding digits'},
         \'\k': {'help_tag': '/\k', 'line': 'Matches a keyword character (see ''iskeyword'' option)'},
@@ -352,38 +350,48 @@ function! RExplicateParser() "{{{
   endfunction "}}}
 
   function! p.to_id(text) "{{{
+    DbgRExplicate printf('to_id: %s', a:text)
+    let text = self.to_magic(a:text, self.magic)
     if self.in_collection
+        DbgRExplicate printf('to_id -> collection')
       if a:text =~# '\m^\\[doxuU]'
+        DbgRExplicate printf('to_id -> collection -> code point')
         " /[\x]
         return substitute(a:text, '\m^\(\\.\).\+', '[\1', '')
       elseif self.is_coll_range(a:text)
+        DbgRExplicate printf('to_id -> collection -> range')
         " /[a-z]
         return self.ignorecase ? 'a-b' : 'A-B'
       elseif a:text =~# '\m^\[[.=].[.=]\]$'
+        DbgRExplicate printf('to_id -> collection -> collation/equivalence')
         " /[[.a.][=a=]]
         return substitute(a:text, '\m^\(\[[.=]\).[.=]\]$', '[\1\1]', '')
       endif
-    elseif a:text =~# '\m^\\%[<>]\?\d\+[lvc]$'
+    elseif text =~# '\m^\\%[<>]\?\d\+[lvc]$'
+      DbgRExplicate printf('to_id -> lcv')
       " /\%23l
       return substitute(a:text, '\m\d\+', '', '')
-    elseif a:text =~# '\m^\\%[<>]''.$'
+    elseif text =~# '\m^\\%[<>]\?''.$'
+      DbgRExplicate printf('to_id -> mark')
       " /\%'m
-      return a:text[0:-2] . 'm'
-    elseif a:text =~# '\m^\\{'
+      return substitute(a:text, '.$', 'm', '')
+    elseif text =~# '\m^\\{'
       " /.\{}
       let id = '\{'
-      let id .= a:text =~# '\m^\\{-' ? '-' : ''
-      let id .= a:text =~# '\m^\\{-\?\d' ? 'n' : ''
-      let id .= a:text =~# '\m^\\{-\?\d*,' ? ',' : ''
-      let id .= a:text =~# '\m^\\{-\?\d*,\d' ? 'm' : ''
+      let id .= text =~# '\m^\\{-' ? '-' : ''
+      let id .= text =~# '\m^\\{-\?\d' ? 'n' : ''
+      let id .= text =~# '\m^\\{-\?\d*,' ? ',' : ''
+      let id .= text =~# '\m^\\{-\?\d*,\d' ? 'm' : ''
       let id .= '}'
       return id
-    elseif a:text =~# '\m^\\%[doxuU]\d\+$'
+    elseif text =~# '\m^\\%[doxuU]\d\+$'
       " /\%d123
       return matchstr(a:text, '\m\C^\\%[doxuU]')
     elseif a:text =~# '\m^\\%#=.\?'
       " regexp engine
       return '\%#='
+    elseif self.is_look_around(self.to_magic(text, self.magic))
+      return substitute(a:text, '\d\+', '123', '')
     endif
     return a:text
   endfunction "}}}
@@ -475,6 +483,9 @@ function! RExplicateParser() "{{{
           let line = printf(line, a:node.min, a:node.max)
         endif
       endif
+    elseif id =~# '\m^\\@123<[=!]$'
+      DbgRExplicate 'line -> look behind'
+      let line = printf(line, matchstr(a:node.normal, '\d\+'))
     elseif id =~# '\m^\%(\[\\\|\\%\)[doxuU]'
       DbgRExplicate 'line -> code point'
       let code_map = {'d': '%s', 'o': '0%s', 'x': '0x%s', 'u': '0x%s', 'U': '0x%s'}
@@ -500,7 +511,9 @@ function! RExplicateParser() "{{{
         let line = printf(line, char, code)
       endif
     elseif has_key(self.id_map, id)
+      DbgRExplicate 'line -> has key'
     else
+      DbgRExplicate 'line -> else'
     endif
     let indent = repeat(' ', (a:node.indent * 2))
     let line = printf('%s%s => %s', indent, a:node.value, line)
@@ -924,7 +937,7 @@ function! RExplicateParser() "{{{
         let self.magic = node.id[1]
         "}}}
 
-      elseif has_key(self.id_map, node.id) "{{{
+      elseif node.value !=? 'x' && has_key(self.id_map, node.id) "{{{
         DbgRExplicate  printf('parse -> has_key')
         "}}}
 
@@ -1019,7 +1032,7 @@ endfunction "}}}
 
 function! RExplicateTest(...) abort "{{{
   let debug = get(g:, 'rexplicate_debug', 0)
-  let g:rexplicate_debug = a:0 ? a:1 : 0
+  let g:rexplicate_debug = get(a:, 1, 0)
 
   let p = RExplicateParser()
 
@@ -1432,21 +1445,21 @@ function! RExplicateTest(...) abort "{{{
   call assert_false(has_error, input)
 
   let input =     '\%4321l'
-  let expected = ['\%23l']
+  let expected = ['\%l']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '\%4321c'
-  let expected = ['\%23c']
+  let expected = ['\%c']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '\%4321v'
-  let expected = ['\%23v']
+  let expected = ['\%v']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
@@ -1460,21 +1473,21 @@ function! RExplicateTest(...) abort "{{{
   call assert_false(has_error, input)
 
   let input =     '\%<4321l'
-  let expected = ['\%<23l']
+  let expected = ['\%<l']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '\%<4321c'
-  let expected = ['\%<23c']
+  let expected = ['\%<c']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '\%<4321v'
-  let expected = ['\%<23v']
+  let expected = ['\%<v']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
@@ -1488,28 +1501,28 @@ function! RExplicateTest(...) abort "{{{
   call assert_false(has_error, input)
 
   let input =     '\%>4321l'
-  let expected = ['\%>23l']
+  let expected = ['\%>l']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '\%>4321c'
-  let expected = ['\%>23c']
+  let expected = ['\%>c']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '\%>4321v'
-  let expected = ['\%>23v']
+  let expected = ['\%>v']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '[\\e]'
-  let expected = ['[', '\', 'e', ']']
+  let expected = ['[', '\\', 'e', ']']
   let output = p.parse(input).values()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
@@ -1524,6 +1537,13 @@ function! RExplicateTest(...) abort "{{{
 
   let input =     '[\\x ]'
   let expected = ['[', 'X', 'X', 'X', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     'a\cb'
+  let expected = ['X', '\c', 'x']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
