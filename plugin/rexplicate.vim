@@ -1410,6 +1410,125 @@ function! RExplicateTest(...) abort "{{{
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
+  let input =     '.\@4321<='
+  let expected = ['.', '\@123<=']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '.\@4321<!'
+  let expected = ['.', '\@123<!']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\%''k'
+  let expected = ['\%''m']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\%4321l'
+  let expected = ['\%23l']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\%4321c'
+  let expected = ['\%23c']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\%4321v'
+  let expected = ['\%23v']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\%<''k'
+  let expected = ['\%<''m']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\%<4321l'
+  let expected = ['\%<23l']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\%<4321c'
+  let expected = ['\%<23c']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\%<4321v'
+  let expected = ['\%<23v']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\%>''k'
+  let expected = ['\%>''m']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\%>4321l'
+  let expected = ['\%>23l']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\%>4321c'
+  let expected = ['\%>23c']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '\%>4321v'
+  let expected = ['\%>23v']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[\\e]'
+  let expected = ['[', '\', 'e', ']']
+  let output = p.parse(input).values()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[\\a]'
+  let expected = ['[', 'X', 'X', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
+  let input =     '[\\x ]'
+  let expected = ['[', 'X', 'X', 'X', ']']
+  let output = p.parse(input).ids()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
   let input =     '\)'
   let expected = ['^^', 'Error: unmatched \)']
   let output = p.parse(input).lines()
