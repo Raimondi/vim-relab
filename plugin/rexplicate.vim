@@ -72,7 +72,7 @@ function! RExplicateParser() "{{{
         \{t -> t =~# '\m^\\_[^iIkKfFpPsSdDxXoOwWhHaAlLuU^$[.]$'}
   let p.is_coll_range =
         \{t -> t =~# '\m^\%(\\[-^\]\\ebnrt]\|[^\\]\)-\%(\\[-^\]\\ebnrt]\|[^\\]\)$'}
-  let p.is_coll_range_id = {t -> t ==# 'a-b'}
+  let p.is_coll_range_id = {t -> t ==? 'a-b'}
   let p.like_code_point =
         \{t -> t =~# '\m^\\%[douUx]'}
   let p.is_code_point =
@@ -85,174 +85,185 @@ function! RExplicateParser() "{{{
         \{t -> t =~# '\m^\\%[<>]\?\d*[clv]'}
   let p.is_invalid_z =
         \{t -> t =~# '\m^\\z[^se]\?$'}
+  let p.is_case =
+        \{t -> t ==? '\c'}
 
   " p.id_map {{{
   let p.id_map = {
-        \'\|': {'help_tag': '/bar', 'description': 'Alternation, works like a logical OR, matches either the left or right subexpressions.'},
-        \'\&': {'help_tag': '/\&', 'description': 'Concatenation, works like a logical AND, matches the subexpression on the righ only if the subexpression on the left also matches.'},
-        \'*': {'help_tag': '/star', 'description': 'Matches 0 or more of the preceding atom, as many as possible.'},
-        \'\+': {'help_tag': '/\+', 'description': 'Matches 1 or more of the preceding atom, as many as possible.'},
-        \'\=': {'help_tag': '/\=', 'description': 'Matches 0 or 1 of the preceding atom, as many as possible.'},
-        \'\?': {'help_tag': '/?', 'description': 'Matches 0 or 1 of the preceding atom, as many as possible. Cannot be used when searching backwards with the "?" command.'},
-        \'\{n,m}': {'help_tag': '/\{', 'description': 'Matches %s to %s of the preceding atom, as many as possible'},
-        \'\{n}': {'help_tag': '/\{', 'description': 'Matches %s of the preceding atom'},
-        \'\{n,}': {'help_tag': '/\{', 'description': 'Matches at least %s of the preceding atom, as many as possible'},
-        \'\{,m}': {'help_tag': '/\{', 'description': 'Matches 0 to %s of the preceding atom, as many as possible'},
-        \'\{}': {'help_tag': '/\{', 'description': 'Matches 0 or more of the preceding atom, as many as possible (like *)'},
-        \'\{,}': {'help_tag': '/\{', 'description': 'Matches 0 or more of the preceding atom, as many as possible (like *)'},
-        \'\{-n,m}': {'help_tag': '/\{-', 'description': 'Matches %s to %s of the preceding atom, as few as possible'},
-        \'\{-n}': {'help_tag': '/\{-', 'description': 'Matches %s of the preceding atom'},
-        \'\{-n,}': {'help_tag': '/\{-', 'description': 'Matches at least %s of the preceding atom, as few as possible'},
-        \'\{-,m}': {'help_tag': '/\{-', 'description': 'Matches 0 to %s of the preceding atom, as few as possible'},
-        \'\{-}': {'help_tag': '/\{-', 'description': 'Matches 0 or more of the preceding atom, as few as possible'},
-        \'\{-,}': {'help_tag': '/\{-', 'description': 'Matches 0 or more of the preceding atom, as few as possible'},
-        \'\@=': {'help_tag': '/\@=', 'description': 'Matches the preceding atom with zero width.'},
-        \'\@!': {'help_tag': '/\@!', 'description': 'Matches with zero width if the preceding atom does NOT match at the current position.'},
-        \'\@<=': {'help_tag': '/\@<=', 'description': 'Matches with zero width if the preceding atom matches just before what follows.'},
-        \'\@123<=': {'help_tag': '/\@<=', 'description': 'Matches with zero width if the preceding atom matches just before what follows but only look bacl 123 bytes.'},
-        \'\@<!': {'help_tag': '/\@<!', 'description': 'Matches with zero width if the preceding atom does NOT match just before what follows.'},
-        \'\@123<!': {'help_tag': '/\@<!', 'description': 'Matches with zero width if the preceding atom does NOT match just before what follows but only look back 123 bytes.'},
-        \'\@>': {'help_tag': '/\@>', 'description': 'Matches the preceding atom like matching a whole pattern.'},
-        \'^' : {'help_tag': '/^', 'description': 'At beginning of pattern or after "\|", "\(", "\%(" or "\n": matches start-of-line with zero width; at other positions, matches literal ''^''.'},
-        \'\_^': {'help_tag': '/\_^', 'description': 'Matches start-of-line. zero-width  Can be used at any position in the pattern.'},
-        \'$': {'help_tag': '/$', 'description': 'At end of pattern or in front of "\|", "\)" or "\n" (''magic'' on): matches end-of-line <EOL> with zero width; at other positions, matches literal ''$''.'},
-        \'\_$': {'help_tag': '/\_$', 'description': 'Matches end-of-line with zero width. Can be used at any position in the pattern.'},
-        \'.': {'help_tag': '/.', 'description': 'Matches any single character, but not an end-of-line.'},
-        \'\_.': {'help_tag': '/\_.', 'description': 'Matches any single character or end-of-line.'},
-        \'\<': {'help_tag': '/\<', 'description': 'Matches the beginning of a word with zero width: The next char is the first char of a word.  The ''iskeyword'' option specifies what is a word character.'},
-        \'\>': {'help_tag': '/\>', 'description': 'Matches the end of a word with zero width: The previous char is the last char of a word.  The ''iskeyword'' option specifies what is a word character.'},
-        \'\zs': {'help_tag': '/\zs', 'description': 'Matches at any position with zero width, and sets the start of the match there: The next char is the first char of the whole match.'},
-        \'\ze': {'help_tag': '/\ze', 'description': 'Matches at any position with zero width, and sets the end of the match there: The previous char is the last char of the whole match.'},
-        \'\%^': {'help_tag': '/\%^', 'description': 'Matches start of the file with zero width.  When matching with a string, matches the start of the string.'},
-        \'\%$': {'help_tag': '\%$', 'description': 'Matches end of the file.  When matching with a string, matches the end of the string.'},
-        \'\%V': {'help_tag': '/\%V', 'description': 'Match inside the Visual area with zero width. When Visual mode has already been stopped match in the area that gv would reselect.'},
-        \'\%#': {'help_tag': '/\%#', 'description': 'Matches with the cursor position with zero width.  Only works when matching in a buffer displayed in a window.'},
-        \'\%''m': {'help_tag': '/\%''m', 'description': 'Matches with the position of mark m with zero width.'},
-        \'\%<''m': {'help_tag': '/\%<''m', 'description': 'Matches before the position of mark m with zero width.'},
-        \'\%>''m': {'help_tag': '/\%>''m', 'description': 'Matches after the position of mark m with zero width.'},
-        \'\%23l': {'help_tag': '/\%l', 'description': 'Matches in a specific line with zero width.'},
-        \'\%<23l': {'help_tag': '/\%>l', 'description': 'Matches above a specific line (lower line number) with zero width.'},
-        \'\%>23l': {'help_tag': '/\%<l', 'description': 'Matches below a specific line (higher line number) with zero width.'},
-        \'\%23c': {'help_tag': '/\%c', 'description': 'Matches in a specific column with zero width.'},
-        \'\%<23c': {'help_tag': '/\%>c', 'description': 'Matches before a specific column with zero width.'},
-        \'\%>23c': {'help_tag': '/\%<c', 'description': 'Matches after a specific column with zero width.'},
-        \'\%23v': {'help_tag': '/\%v', 'description': 'Matches in a specific virtual column with zero width.'},
-        \'\%<23v': {'help_tag': '/\%>v', 'description': 'Matches before a specific virtual column with zero width.'},
-        \'\%>23v': {'help_tag': '/\%<v', 'description': 'Matches after a specific virtual column with zero width.'},
-        \'\i': {'help_tag': '/\i', 'description': 'Matches an identifier character (see ''isident'' option)'},
-        \'\I': {'help_tag': '/\I', 'description': 'Matches an identifier character, but excluding digits'},
-        \'\k': {'help_tag': '/\k', 'description': 'Matches a keyword character (see ''iskeyword'' option)'},
-        \'\K': {'help_tag': '/\K', 'description': 'Matches a keyword character, but excluding digits'},
-        \'\f': {'help_tag': '/\f', 'description': 'Matches a file name character (see ''isfname'' option)'},
-        \'\F': {'help_tag': '/\F', 'description': 'Matches a file name character, but excluding digits'},
-        \'\p': {'help_tag': '/\p', 'description': 'Matches a printable character (see ''isprint'' option)'},
-        \'\P': {'help_tag': '/\P', 'description': 'Matches a printable character, but excluding digits'},
-        \'\s': {'help_tag': '/\s', 'description': 'Matches a whitespace character: <Space> and <Tab>'},
-        \'\S': {'help_tag': '/\S', 'description': 'Matches a non-whitespace character; opposite of \s'},
-        \'\d': {'help_tag': '/\d', 'description': 'Matches a digit: [0-9]'},
-        \'\D': {'help_tag': '/\D', 'description': 'Matches a non-digit: [^0-9]'},
-        \'\x': {'help_tag': '/\x', 'description': 'Matches a hex digit: [0-9A-Fa-f]'},
-        \'\X': {'help_tag': '/\X', 'description': 'Matches a non-hex digit: [^0-9A-Fa-f]'},
-        \'\o': {'help_tag': '/\o', 'description': 'Matches an octal digit: [0-7]'},
-        \'\O': {'help_tag': '/\O', 'description': 'Matches a non-octal digit: [^0-7]'},
-        \'\w': {'help_tag': '/\w', 'description': 'Matches a word character: [0-9A-Za-z_]'},
-        \'\W': {'help_tag': '/\W', 'description': 'Matches a non-word character: [^0-9A-Za-z_]'},
-        \'\h': {'help_tag': '/\h', 'description': 'Matches a head of word character: [A-Za-z_]'},
-        \'\H': {'help_tag': '/\H', 'description': 'Matches a non-head of word character: [^A-Za-z_]'},
-        \'\a': {'help_tag': '/\a', 'description': 'Matches an alphabetic character: [A-Za-z]'},
-        \'\A': {'help_tag': '/\A', 'description': 'Matches a non-alphabetic character: [^A-Za-z]'},
-        \'\l': {'help_tag': '/\l', 'description': 'Matches a lowercase character: [a-z]'},
-        \'\L': {'help_tag': '/\L', 'description': 'Matches a non-lowercase character: [^a-z]'},
-        \'\u': {'help_tag': '/\u', 'description': 'Matches an uppercase character: [A-Z]'},
-        \'\U': {'help_tag': '/\U', 'description': 'Matches a non-uppercase character: [^A-Z]'},
-        \'\_i': {'help_tag': '/\i', 'description': 'Matches an identifier character (see ''isident'' option) or a newline (like \n)'},
-        \'\_I': {'help_tag': '/\I', 'description': 'Matches an identifier character, but excluding digits or a newline (like \n)'},
-        \'\_k': {'help_tag': '/\k', 'description': 'Matches a keyword character (see ''iskeyword'' option) or a newline (like \n)'},
-        \'\_K': {'help_tag': '/\K', 'description': 'Matches a keyword character, but excluding digits or a newline (like \n)'},
-        \'\_f': {'help_tag': '/\f', 'description': 'Matches a file name character (see ''isfname'' option) or a newline (like \n)'},
-        \'\_F': {'help_tag': '/\F', 'description': 'Matches a file name character, but excluding digits or a newline (like \n)'},
-        \'\_p': {'help_tag': '/\p', 'description': 'Matches a printable character (see ''isprint'' option) or a newline (like \n)'},
-        \'\_P': {'help_tag': '/\P', 'description': 'Matches a printable character, but excluding digits or a newline (like \n)'},
-        \'\_s': {'help_tag': '/\s', 'description': 'Matches a whitespace character: <Space> and <Tab> or a newline (like \n)'},
-        \'\_S': {'help_tag': '/\S', 'description': 'Matches a non-whitespace character; opposite of \s or a newline (like \n)'},
-        \'\_d': {'help_tag': '/\d', 'description': 'Matches a digit: [0-9] or a newline (like \n)'},
-        \'\_D': {'help_tag': '/\D', 'description': 'Matches a non-digit: [^0-9] or a newline (like \n)'},
-        \'\_x': {'help_tag': '/\x', 'description': 'Matches a hex digit: [0-9A-Fa-f] or a newline (like \n)'},
-        \'\_X': {'help_tag': '/\X', 'description': 'Matches a non-hex digit: [^0-9A-Fa-f] or a newline (like \n)'},
-        \'\_o': {'help_tag': '/\o', 'description': 'Matches an octal digit: [0-7] or a newline (like \n)'},
-        \'\_O': {'help_tag': '/\O', 'description': 'Matches a non-octal digit: [^0-7] or a newline (like \n)'},
-        \'\_w': {'help_tag': '/\w', 'description': 'Matches a word character: [0-9A-Za-z_] or a newline (like \n)'},
-        \'\_W': {'help_tag': '/\W', 'description': 'Matches a non-word character: [^0-9A-Za-z_] or a newline (like \n)'},
-        \'\_h': {'help_tag': '/\h', 'description': 'Matches a head of word character: [A-Za-z_] or a newline (like \n)'},
-        \'\_H': {'help_tag': '/\H', 'description': 'Matches a non-head of word character: [^A-Za-z_] or a newline (like \n)'},
-        \'\_a': {'help_tag': '/\a', 'description': 'Matches an alphabetic character: [A-Za-z] or a newline (like \n)'},
-        \'\_A': {'help_tag': '/\A', 'description': 'Matches a non-alphabetic character: [^A-Za-z] or a newline (like \n)'},
-        \'\_l': {'help_tag': '/\l', 'description': 'Matches a lowercase character: [a-z] or a newline (like \n)'},
-        \'\_L': {'help_tag': '/\L', 'description': 'Matches a non-lowercase character: [^a-z] or a newline (like \n)'},
-        \'\_u': {'help_tag': '/\u', 'description': 'Matches an uppercase character: [A-Z] or a newline (like \n)'},
-        \'\_U': {'help_tag': '/\U', 'description': 'Matches a non-uppercase character: [^A-Z] or a newline (like \n)'},
-        \'~': {'help_tag': '/\~', 'description': 'Matches the last given substitute string.'},
-        \'\(': {'help_tag': '/\(', 'description': 'Start a pattern enclosed by escaped parentheses.'},
-        \'\)': {'help_tag': '/\)', 'description': 'End a pattern enclosed by escaped parentheses.'},
-        \'\1': {'help_tag': '/\1', 'description': 'Matches the same string that was matched by the first sub-expression in \( and \).'},
-        \'\2': {'help_tag': '/\2', 'description': 'Matches the same string that was matched by the second sub-expression in \( and \).'},
-        \'\3': {'help_tag': '/\3', 'description': 'Matches the same string that was matched by the third sub-expression in \( and \).'},
-        \'\4': {'help_tag': '/\4', 'description': 'Matches the same string that was matched by the fourth sub-expression in \( and \).'},
-        \'\5': {'help_tag': '/\5', 'description': 'Matches the same string that was matched by the fifth sub-expression in \( and \).'},
-        \'\6': {'help_tag': '/\6', 'description': 'Matches the same string that was matched by the sixth sub-expression in \( and \).'},
-        \'\7': {'help_tag': '/\7', 'description': 'Matches the same string that was matched by the seventh sub-expression in \( and \).'},
-        \'\8': {'help_tag': '/\8', 'description': 'Matches the same string that was matched by the eighth sub-expression in \( and \).'},
-        \'\9': {'help_tag': '/\9', 'description': 'Matches the same string that was matched by the ninth sub-expression in \( and \).'},
-        \'\%(': {'help_tag': '/\%(', 'description': 'Start a pattern enclosed by escaped parentheses.  Just like \(\), but without counting it as a sub-expression.'},
-        \'[': {'help_tag': '/[]', 'description': 'This is a sequence of characters enclosed in brackets. It matches any single character in the collection.'},
-        \']': {'help_tag': '/[]', 'description': 'Ends the collection'},
-        \'\_[': {'help_tag': '/\_[]', 'description': 'This is a sequence of characters enclosed in brackets. It matches any single character in the collection.  With "\_" prepended the collection also includes the end-of-line.'},
-        \'[^': {'help_tag': 'E944', 'description': 'If the sequence begins with "^", it matches any single character NOT in the collection: "[^xyz]" matches anything but ''x'', ''y'' and ''z''.'},
-        \'[-': {'help_tag': 'E944', 'description': 'If two characters in the sequence are separated by ''-'', this is shorthand for the full list of ASCII characters between them.'},
-        \'[:alnum:]': {'help_tag': '[:alnum:]', 'description': 'Matches ASCII letters and digits'},
-        \'[:alpha:]': {'help_tag': '[:alpha:]', 'description': 'Matches ASCII letters'},
-        \'[:blank:]': {'help_tag': '[:blank:]', 'description': 'Matches space and tab'},
-        \'[:cntrl:]': {'help_tag': '[:cntrl:]', 'description': 'Matches ASCII control characters'},
-        \'[:digit:]': {'help_tag': '[:digit:]', 'description': 'Matches decimal digits ''0'' to ''9'''},
-        \'[:graph:]': {'help_tag': '[:graph:]', 'description': 'Matches ASCII printable characters excluding space'},
-        \'[:lower:]': {'help_tag': '[:lower:]', 'description': 'Matches lowercase letters (all letters when ''ignorecase'' is used)'},
-        \'[:print:]': {'help_tag': '[:print:]', 'description': 'Matches printable characters including space'},
-        \'[:punct:]': {'help_tag': '[:punct:]', 'description': 'Matches ASCII punctuation characters'},
-        \'[:space:]': {'help_tag': '[:space:]', 'description': 'Matches whitespace characters: space, tab, CR, NL, vertical tab, form feed'},
-        \'[:upper:]': {'help_tag': '[:upper:]', 'description': 'Matches uppercase letters (all letters when ''ignorecase'' is used)'},
-        \'[:xdigit:]': {'help_tag': '[:xdigit:]', 'description': 'Matches hexadecimal digits: 0-9, a-f, A-F'},
-        \'[:return:]': {'help_tag': '[:return:]', 'description': 'Matches the <CR> character'},
-        \'[:tab:]': {'help_tag': '[:tab:]', 'description': 'Matches the <Tab> character'},
-        \'[:escape:]': {'help_tag': '[:escape:]', 'description': 'Matches the <Esc> character'},
-        \'[:backspace:]': {'help_tag': '[:backspace:]', 'description': 'Matches the <BS> character'},
-        \'[==]': {'help_tag': '[==]', 'description': 'An equivalence class.  This means that characters are matched that have almost the same meaning, e.g., when ignoring accents.  This only works for Unicode, latin1 and latin9.  The form is: [=a=]'},
-        \'[..]': {'help_tag': '[..]', 'description': 'A collation element.  This currently simply accepts a single character in the form: [.a.]'},
-        \'[\e': {'help_tag': '/\]', 'description': 'Matches an <Esc>'},
-        \'[\t': {'help_tag': '/\]', 'description': 'Matches a <Tab>'},
-        \'[\r': {'help_tag': '/\]', 'description': 'Matches a <CR>	(NOT end-of-line!)'},
-        \'[\b': {'help_tag': '/\]', 'description': 'Matches a <BS>'},
-        \'[\n': {'help_tag': '/\]', 'description': 'Matches a line break, see above |/[\n]|'},
-        \'[\d': {'help_tag': '/\]', 'description': 'Matches a decimal number of character'},
-        \'[\o': {'help_tag': '/\]', 'description': 'Matches an octal number of character up to 0377'},
-        \'[\x': {'help_tag': '/\]', 'description': 'Matches a hexadecimal number of character up to 0xff'},
-        \'[\u': {'help_tag': '/\]', 'description': 'Matches a hex. number of multibyte character up to 0xffff'},
-        \'[\U': {'help_tag': '/\]', 'description': 'Matches a hex. number of multibyte character up to 0xffffffff'},
-        \'\%[': {'help_tag': '/\%[]', 'description': 'A sequence of optionally matched atoms.  This always matches.'},
-        \'\%]': {'help_tag': '/\%[]', 'description': 'Ends optional group'},
-        \'\%d': {'help_tag': '/\%d', 'description': 'Matches the character specified with a decimal number.  Must be followed by a non-digit.'},
-        \'\%o': {'help_tag': '/\O', 'description': 'Matches the character specified with an octal number up to 0377.  Numbers below 040 must be followed by a non-octal digit or a non-digit.'},
-        \'\%x': {'help_tag': '/\%x', 'description': 'Matches the character specified with up to two hexadecimal characters.'},
-        \'\%u': {'help_tag': '/\%u', 'description' : 'Matches the character specified with up to four hexadecimal characters.'},
-        \'\%U': {'help_tag': '/\%U' ,'description': 'Matches the character specified with up to eight hexadecimal characters.'},
-        \'\c': {'help_tag': '/\c', 'description': 'When "\c" appears anywhere in the pattern, the whole pattern is handled like ''ignorecase'' is on.  The actual value of ''ignorecase'' and ''smartcase'' is ignored.'},
-        \'\C': {'help_tag': '/\C', 'description': 'When "\C" appears anywhere in the pattern, the whole pattern is handled like ''ignorecase'' is off  The actual value of ''ignorecase'' and ''smartcase'' is ignored.'},
-        \'\Z': {'help_tag': '/\Z', 'description': 'When "\Z" appears anywhere in the pattern, all composing characters are ignored.'},
-        \'\%C': {'help_tag': '/\%C', 'description': 'Use "\%C" to skip any composing characters.'},
-        \'\m': {'help_tag': '/\m', 'description': '''magic'' on for the following chars in the pattern'},
-        \'\M': {'help_tag': '/\M', 'description': '''magic'' off for the following chars in the pattern'},
-        \'\v': {'help_tag': '/\v', 'description': 'the following chars in the pattern are "very magic"'},
-        \'\V': {'help_tag': '/\V', 'description': 'the following chars in the pattern are "very nomagic"'},
-        \'\%#=': {'help_tag': '/\%#=', 'description': 'select regexp engine'},
+        \'\|': {'help_tag': '/bar', 'line': 'Alternation, works like a logical OR, matches either the left or right subexpressions.'},
+        \'\&': {'help_tag': '/\&', 'line': 'Concatenation, works like a logical AND, matches the subexpression on the righ only if the subexpression on the left also matches.'},
+        \'*': {'help_tag': '/star', 'line': 'Matches 0 or more of the preceding atom, as many as possible.'},
+        \'\+': {'help_tag': '/\+', 'line': 'Matches 1 or more of the preceding atom, as many as possible.'},
+        \'\=': {'help_tag': '/\=', 'line': 'Matches 0 or 1 of the preceding atom, as many as possible.'},
+        \'\?': {'help_tag': '/?', 'line': 'Matches 0 or 1 of the preceding atom, as many as possible. Cannot be used when searching backwards with the "?" command.'},
+        \'\{n,m}': {'help_tag': '/\{', 'line': 'Matches %s to %s of the preceding atom, as many as possible'},
+        \'\{n}': {'help_tag': '/\{', 'line': 'Matches %s of the preceding atom'},
+        \'\{n,}': {'help_tag': '/\{', 'line': 'Matches at least %s of the preceding atom, as many as possible'},
+        \'\{,m}': {'help_tag': '/\{', 'line': 'Matches 0 to %s of the preceding atom, as many as possible'},
+        \'\{}': {'help_tag': '/\{', 'line': 'Matches 0 or more of the preceding atom, as many as possible (like *)'},
+        \'\{,}': {'help_tag': '/\{', 'line': 'Matches 0 or more of the preceding atom, as many as possible (like *)'},
+        \'\{-n,m}': {'help_tag': '/\{-', 'line': 'Matches %s to %s of the preceding atom, as few as possible'},
+        \'\{-n}': {'help_tag': '/\{-', 'line': 'Matches %s of the preceding atom'},
+        \'\{-n,}': {'help_tag': '/\{-', 'line': 'Matches at least %s of the preceding atom, as few as possible'},
+        \'\{-,m}': {'help_tag': '/\{-', 'line': 'Matches 0 to %s of the preceding atom, as few as possible'},
+        \'\{-}': {'help_tag': '/\{-', 'line': 'Matches 0 or more of the preceding atom, as few as possible'},
+        \'\{-,}': {'help_tag': '/\{-', 'line': 'Matches 0 or more of the preceding atom, as few as possible'},
+        \'\@=': {'help_tag': '/\@=', 'line': 'Matches the preceding atom with zero width.'},
+        \'\@!': {'help_tag': '/\@!', 'line': 'Matches with zero width if the preceding atom does NOT match at the current position.'},
+        \'\@<=': {'help_tag': '/\@<=', 'line': 'Matches with zero width if the preceding atom matches just before what follows.'},
+        \'\@123<=': {'help_tag': '/\@<=', 'line': 'Matches with zero width if the preceding atom matches just before what follows but only look bacl 123 bytes.'},
+        \'\@<!': {'help_tag': '/\@<!', 'line': 'Matches with zero width if the preceding atom does NOT match just before what follows.'},
+        \'\@123<!': {'help_tag': '/\@<!', 'line': 'Matches with zero width if the preceding atom does NOT match just before what follows but only look back 123 bytes.'},
+        \'\@>': {'help_tag': '/\@>', 'line': 'Matches the preceding atom like matching a whole pattern.'},
+        \'^' : {'help_tag': '/^', 'line': 'At beginning of pattern or after "\|", "\(", "\%(" or "\n": matches start-of-line with zero width; at other positions, matches literal ''^''.'},
+        \'\_^': {'help_tag': '/\_^', 'line': 'Matches start-of-line. zero-width  Can be used at any position in the pattern.'},
+        \'$': {'help_tag': '/$', 'line': 'At end of pattern or in front of "\|", "\)" or "\n" (''magic'' on): matches end-of-line <EOL> with zero width; at other positions, matches literal ''$''.'},
+        \'\_$': {'help_tag': '/\_$', 'line': 'Matches end-of-line with zero width. Can be used at any position in the pattern.'},
+        \'.': {'help_tag': '/.', 'line': 'Matches any single character, but not an end-of-line.'},
+        \'\_.': {'help_tag': '/\_.', 'line': 'Matches any single character or end-of-line.'},
+        \'\<': {'help_tag': '/\<', 'line': 'Matches the beginning of a word with zero width: The next char is the first char of a word.  The ''iskeyword'' option specifies what is a word character.'},
+        \'\>': {'help_tag': '/\>', 'line': 'Matches the end of a word with zero width: The previous char is the last char of a word.  The ''iskeyword'' option specifies what is a word character.'},
+        \'\zs': {'help_tag': '/\zs', 'line': 'Matches at any position with zero width, and sets the start of the match there: The next char is the first char of the whole match.'},
+        \'\ze': {'help_tag': '/\ze', 'line': 'Matches at any position with zero width, and sets the end of the match there: The previous char is the last char of the whole match.'},
+        \'\%^': {'help_tag': '/\%^', 'line': 'Matches start of the file with zero width.  When matching with a string, matches the start of the string.'},
+        \'\%$': {'help_tag': '\%$', 'line': 'Matches end of the file.  When matching with a string, matches the end of the string.'},
+        \'\%V': {'help_tag': '/\%V', 'line': 'Match inside the Visual area with zero width. When Visual mode has already been stopped match in the area that gv would reselect.'},
+        \'\%#': {'help_tag': '/\%#', 'line': 'Matches with the cursor position with zero width.  Only works when matching in a buffer displayed in a window.'},
+        \'\%''m': {'help_tag': '/\%''m', 'line': 'Matches with the position of mark m with zero width.'},
+        \'\%<''m': {'help_tag': '/\%<''m', 'line': 'Matches before the position of mark m with zero width.'},
+        \'\%>''m': {'help_tag': '/\%>''m', 'line': 'Matches after the position of mark m with zero width.'},
+        \'\%23l': {'help_tag': '/\%l', 'line': 'Matches in a specific line with zero width.'},
+        \'\%<23l': {'help_tag': '/\%>l', 'line': 'Matches above a specific line (lower line number) with zero width.'},
+        \'\%>23l': {'help_tag': '/\%<l', 'line': 'Matches below a specific line (higher line number) with zero width.'},
+        \'\%23c': {'help_tag': '/\%c', 'line': 'Matches in a specific column with zero width.'},
+        \'\%<23c': {'help_tag': '/\%>c', 'line': 'Matches before a specific column with zero width.'},
+        \'\%>23c': {'help_tag': '/\%<c', 'line': 'Matches after a specific column with zero width.'},
+        \'\%23v': {'help_tag': '/\%v', 'line': 'Matches in a specific virtual column with zero width.'},
+        \'\%<23v': {'help_tag': '/\%>v', 'line': 'Matches before a specific virtual column with zero width.'},
+        \'\%>23v': {'help_tag': '/\%<v', 'line': 'Matches after a specific virtual column with zero width.'},
+        \'\i': {'help_tag': '/\i', 'line': 'Matches an identifier character (see ''isident'' option)'},
+        \'\I': {'help_tag': '/\I', 'line': 'Matches an identifier character, but excluding digits'},
+        \'\k': {'help_tag': '/\k', 'line': 'Matches a keyword character (see ''iskeyword'' option)'},
+        \'\K': {'help_tag': '/\K', 'line': 'Matches a keyword character, but excluding digits'},
+        \'\f': {'help_tag': '/\f', 'line': 'Matches a file name character (see ''isfname'' option)'},
+        \'\F': {'help_tag': '/\F', 'line': 'Matches a file name character, but excluding digits'},
+        \'\p': {'help_tag': '/\p', 'line': 'Matches a printable character (see ''isprint'' option)'},
+        \'\P': {'help_tag': '/\P', 'line': 'Matches a printable character, but excluding digits'},
+        \'\s': {'help_tag': '/\s', 'line': 'Matches a whitespace character: <Space> and <Tab>'},
+        \'\S': {'help_tag': '/\S', 'line': 'Matches a non-whitespace character; opposite of \s'},
+        \'\d': {'help_tag': '/\d', 'line': 'Matches a digit: [0-9]'},
+        \'\D': {'help_tag': '/\D', 'line': 'Matches a non-digit: [^0-9]'},
+        \'\x': {'help_tag': '/\x', 'line': 'Matches a hex digit: [0-9A-Fa-f]'},
+        \'\X': {'help_tag': '/\X', 'line': 'Matches a non-hex digit: [^0-9A-Fa-f]'},
+        \'\o': {'help_tag': '/\o', 'line': 'Matches an octal digit: [0-7]'},
+        \'\O': {'help_tag': '/\O', 'line': 'Matches a non-octal digit: [^0-7]'},
+        \'\w': {'help_tag': '/\w', 'line': 'Matches a word character: [0-9A-Za-z_]'},
+        \'\W': {'help_tag': '/\W', 'line': 'Matches a non-word character: [^0-9A-Za-z_]'},
+        \'\h': {'help_tag': '/\h', 'line': 'Matches a head of word character: [A-Za-z_]'},
+        \'\H': {'help_tag': '/\H', 'line': 'Matches a non-head of word character: [^A-Za-z_]'},
+        \'\a': {'help_tag': '/\a', 'line': 'Matches an alphabetic character: [A-Za-z]'},
+        \'\A': {'help_tag': '/\A', 'line': 'Matches a non-alphabetic character: [^A-Za-z]'},
+        \'\l': {'help_tag': '/\l', 'line': 'Matches a lowercase character: [a-z]'},
+        \'\L': {'help_tag': '/\L', 'line': 'Matches a non-lowercase character: [^a-z]'},
+        \'\u': {'help_tag': '/\u', 'line': 'Matches an uppercase character: [A-Z]'},
+        \'\U': {'help_tag': '/\U', 'line': 'Matches a non-uppercase character: [^A-Z]'},
+        \'\_i': {'help_tag': '/\i', 'line': 'Matches an identifier character (see ''isident'' option) or a newline (like \n)'},
+        \'\_I': {'help_tag': '/\I', 'line': 'Matches an identifier character, but excluding digits or a newline (like \n)'},
+        \'\_k': {'help_tag': '/\k', 'line': 'Matches a keyword character (see ''iskeyword'' option) or a newline (like \n)'},
+        \'\_K': {'help_tag': '/\K', 'line': 'Matches a keyword character, but excluding digits or a newline (like \n)'},
+        \'\_f': {'help_tag': '/\f', 'line': 'Matches a file name character (see ''isfname'' option) or a newline (like \n)'},
+        \'\_F': {'help_tag': '/\F', 'line': 'Matches a file name character, but excluding digits or a newline (like \n)'},
+        \'\_p': {'help_tag': '/\p', 'line': 'Matches a printable character (see ''isprint'' option) or a newline (like \n)'},
+        \'\_P': {'help_tag': '/\P', 'line': 'Matches a printable character, but excluding digits or a newline (like \n)'},
+        \'\_s': {'help_tag': '/\s', 'line': 'Matches a whitespace character: <Space> and <Tab> or a newline (like \n)'},
+        \'\_S': {'help_tag': '/\S', 'line': 'Matches a non-whitespace character; opposite of \s or a newline (like \n)'},
+        \'\_d': {'help_tag': '/\d', 'line': 'Matches a digit: [0-9] or a newline (like \n)'},
+        \'\_D': {'help_tag': '/\D', 'line': 'Matches a non-digit: [^0-9] or a newline (like \n)'},
+        \'\_x': {'help_tag': '/\x', 'line': 'Matches a hex digit: [0-9A-Fa-f] or a newline (like \n)'},
+        \'\_X': {'help_tag': '/\X', 'line': 'Matches a non-hex digit: [^0-9A-Fa-f] or a newline (like \n)'},
+        \'\_o': {'help_tag': '/\o', 'line': 'Matches an octal digit: [0-7] or a newline (like \n)'},
+        \'\_O': {'help_tag': '/\O', 'line': 'Matches a non-octal digit: [^0-7] or a newline (like \n)'},
+        \'\_w': {'help_tag': '/\w', 'line': 'Matches a word character: [0-9A-Za-z_] or a newline (like \n)'},
+        \'\_W': {'help_tag': '/\W', 'line': 'Matches a non-word character: [^0-9A-Za-z_] or a newline (like \n)'},
+        \'\_h': {'help_tag': '/\h', 'line': 'Matches a head of word character: [A-Za-z_] or a newline (like \n)'},
+        \'\_H': {'help_tag': '/\H', 'line': 'Matches a non-head of word character: [^A-Za-z_] or a newline (like \n)'},
+        \'\_a': {'help_tag': '/\a', 'line': 'Matches an alphabetic character: [A-Za-z] or a newline (like \n)'},
+        \'\_A': {'help_tag': '/\A', 'line': 'Matches a non-alphabetic character: [^A-Za-z] or a newline (like \n)'},
+        \'\_l': {'help_tag': '/\l', 'line': 'Matches a lowercase character: [a-z] or a newline (like \n)'},
+        \'\_L': {'help_tag': '/\L', 'line': 'Matches a non-lowercase character: [^a-z] or a newline (like \n)'},
+        \'\_u': {'help_tag': '/\u', 'line': 'Matches an uppercase character: [A-Z] or a newline (like \n)'},
+        \'\_U': {'help_tag': '/\U', 'line': 'Matches a non-uppercase character: [^A-Z] or a newline (like \n)'},
+        \'~': {'help_tag': '/\~', 'line': 'Matches the last given substitute string.'},
+        \'\(': {'help_tag': '/\(', 'line': 'Start a pattern enclosed by escaped parentheses.'},
+        \'\)': {'help_tag': '/\)', 'line': 'End a pattern enclosed by escaped parentheses.'},
+        \'\1': {'help_tag': '/\1', 'line': 'Matches the same string that was matched by the first sub-expression in \( and \).'},
+        \'\2': {'help_tag': '/\2', 'line': 'Matches the same string that was matched by the second sub-expression in \( and \).'},
+        \'\3': {'help_tag': '/\3', 'line': 'Matches the same string that was matched by the third sub-expression in \( and \).'},
+        \'\4': {'help_tag': '/\4', 'line': 'Matches the same string that was matched by the fourth sub-expression in \( and \).'},
+        \'\5': {'help_tag': '/\5', 'line': 'Matches the same string that was matched by the fifth sub-expression in \( and \).'},
+        \'\6': {'help_tag': '/\6', 'line': 'Matches the same string that was matched by the sixth sub-expression in \( and \).'},
+        \'\7': {'help_tag': '/\7', 'line': 'Matches the same string that was matched by the seventh sub-expression in \( and \).'},
+        \'\8': {'help_tag': '/\8', 'line': 'Matches the same string that was matched by the eighth sub-expression in \( and \).'},
+        \'\9': {'help_tag': '/\9', 'line': 'Matches the same string that was matched by the ninth sub-expression in \( and \).'},
+        \'\%(': {'help_tag': '/\%(', 'line': 'Start a pattern enclosed by escaped parentheses.  Just like \(\), but without counting it as a sub-expression.'},
+        \'\%[': {'help_tag': '/\%[]', 'line': 'A sequence of optionally matched atoms.  This always matches.'},
+        \'\%]': {'help_tag': '/\%[]', 'line': 'Ends optional group'},
+        \'[': {'help_tag': '/[]', 'line': 'This is a sequence of characters enclosed in brackets. It matches any single character in the collection.'},
+        \']': {'help_tag': '/[]', 'line': 'Ends the collection'},
+        \'\_[': {'help_tag': '/\_[]', 'line': 'This is a sequence of characters enclosed in brackets. It matches any single character in the collection.  With "\_" prepended the collection also includes the end-of-line.'},
+        \'[^': {'help_tag': 'E944', 'line': 'If the sequence begins with "^", it matches any single character NOT in the collection: "[^xyz]" matches anything but ''x'', ''y'' and ''z''.'},
+        \'A-B': {'help_tag': 'E944', 'line': 'Matches a character in the range from %s (code %s) to %s code(%s)'},
+        \'a-b': {'help_tag': 'E944', 'line': 'Matches a character in the range from %s (code %s) to %s code(%s) or in the range from %s (code %s) to %s code(%s)'},
+        \'[:alnum:]': {'help_tag': '[:alnum:]', 'line': 'Matches ASCII letters and digits'},
+        \'[:alpha:]': {'help_tag': '[:alpha:]', 'line': 'Matches ASCII letters'},
+        \'[:blank:]': {'help_tag': '[:blank:]', 'line': 'Matches space and tab'},
+        \'[:cntrl:]': {'help_tag': '[:cntrl:]', 'line': 'Matches ASCII control characters'},
+        \'[:digit:]': {'help_tag': '[:digit:]', 'line': 'Matches decimal digits ''0'' to ''9'''},
+        \'[:graph:]': {'help_tag': '[:graph:]', 'line': 'Matches ASCII printable characters excluding space'},
+        \'[:lower:]': {'help_tag': '[:lower:]', 'line': 'Matches lowercase letters (all letters when ''ignorecase'' is used)'},
+        \'[:print:]': {'help_tag': '[:print:]', 'line': 'Matches printable characters including space'},
+        \'[:punct:]': {'help_tag': '[:punct:]', 'line': 'Matches ASCII punctuation characters'},
+        \'[:space:]': {'help_tag': '[:space:]', 'line': 'Matches whitespace characters: space, tab, CR, NL, vertical tab, form feed'},
+        \'[:upper:]': {'help_tag': '[:upper:]', 'line': 'Matches uppercase letters (all letters when ''ignorecase'' is used)'},
+        \'[:xdigit:]': {'help_tag': '[:xdigit:]', 'line': 'Matches hexadecimal digits: 0-9, a-f, A-F'},
+        \'[:return:]': {'help_tag': '[:return:]', 'line': 'Matches the <CR> character'},
+        \'[:tab:]': {'help_tag': '[:tab:]', 'line': 'Matches the <Tab> character'},
+        \'[:escape:]': {'help_tag': '[:escape:]', 'line': 'Matches the <Esc> character'},
+        \'[:backspace:]': {'help_tag': '[:backspace:]', 'line': 'Matches the <BS> character'},
+        \'[==]': {'help_tag': '[==]', 'line': 'An equivalence class.  This means that characters are matched that have almost the same meaning, e.g., when ignoring accents.  This only works for Unicode, latin1 and latin9.  The form is: [=a=]'},
+        \'[..]': {'help_tag': '[..]', 'line': 'A collation element.  This currently simply accepts a single character in the form: [.a.]'},
+        \'\n': {'help_tag': '/\]', 'line': 'Matches an end-of-line'},
+        \'[\d': {'help_tag': '/\]', 'line': 'Matches the character "%s" as specified with the decimal number %s. Must be followed by a non-digit.'},
+        \'[\o': {'help_tag': '/\]', 'line': 'Matches the character "%s" as specified with the octal number %s. Numbers can be up to 0377. Numbers below 040 must be followed by a non-octal digit or a non-digit.'},
+        \'[\x': {'help_tag': '/\]', 'line': 'Matches the character "%s" as specified with the hexadecimal nuber %s. Takes up to two hexadecimal characters.'},
+        \'[\u': {'help_tag': '/\]', 'line': 'Matches the character "%s" as specified with the hexadecimal number %s. Takes up to four hexadecimal characters.'},
+        \'[\U': {'help_tag': '/\]', 'line': 'Matches the character "%s" as specified with the hexadecimal number %s. Takes up to eight hexadecimal characters.'},
+        \'[\di': {'help_tag': '/\]', 'line': 'Matches the character "%s" as specified with the decimal number %s or the character "%s". Must be followed by a non-digit.'},
+        \'[\oi': {'help_tag': '/\]', 'line': 'Matches the character "%s" as specified with the octal number %s or the character "%s". Numbers can be up to 0377. Numbers below 040 must be followed by a non-octal digit or a non-digit.'},
+        \'[\xi': {'help_tag': '/\]', 'line': 'Matches the character "%s" as specified with the hexadecimal nuber %s or the character "%s". Takes up to two hexadecimal characters.'},
+        \'[\ui': {'help_tag': '/\]', 'line': 'Matches the character "%s" as specified with the hexadecimal number %s or the character "%s". Takes up to four hexadecimal characters.'},
+        \'[\Ui': {'help_tag': '/\]', 'line': 'Matches the character "%s" as specified with the hexadecimal number %s or the character "%s". Takes up to eight hexadecimal characters.'},
+        \'\%d': {'help_tag': '/\%d', 'line': 'Matches the character "%s" as specified with the decimal number %s. Must be followed by a non-digit.'},
+        \'\%o': {'help_tag': '/\%o', 'line': 'Matches the character "%s" as specified with the octal number %s. Numbers can be up to 0377. Numbers below 040 must be followed by a non-octal digit or a non-digit.'},
+        \'\%x': {'help_tag': '/\%x', 'line': 'Matches the character "%s" as specified with the hexadecimal nuber %s. Takes up to two hexadecimal characters.'},
+        \'\%u': {'help_tag': '/\%u', 'line': 'Matches the character "%s" as specified with the hexadecimal number %s. Takes up to four hexadecimal characters.'},
+        \'\%U': {'help_tag': '/\%U' ,'line': 'Matches the character "%s" as specified with the hexadecimal number %s. Takes up to eight hexadecimal characters.'},
+        \'\%di': {'help_tag': '/\%d', 'line': 'Matches the character "%s" as specified with the decimal number %s or the character "%s". Must be followed by a non-digit.'},
+        \'\%oi': {'help_tag': '/\%o', 'line': 'Matches the character "%s" as specified with the octal number %s or the character "%s". Numbers can be up to 0377. Numbers below 040 must be followed by a non-octal digit or a non-digit.'},
+        \'\%xi': {'help_tag': '/\%x', 'line': 'Matches the character "%s" as specified with the hexadecimal nuber %s or the character "%s". Takes up to two hexadecimal characters.'},
+        \'\%ui': {'help_tag': '/\%u', 'line': 'Matches the character "%s" as specified with the hexadecimal number %s or the character "%s". Takes up to four hexadecimal characters.'},
+        \'\%Ui': {'help_tag': '/\%U' ,'line': 'Matches the character "%s" as specified with the hexadecimal number %s or the character "%s". Takes up to eight hexadecimal characters.'},
+        \'\c': {'help_tag': '/\c', 'line': 'When "\c" appears anywhere in the pattern, the whole pattern is handled like ''ignorecase'' is on.  The actual value of ''ignorecase'' and ''smartcase'' is ignored.'},
+        \'\C': {'help_tag': '/\C', 'line': 'When "\C" appears anywhere in the pattern, the whole pattern is handled like ''ignorecase'' is off  The actual value of ''ignorecase'' and ''smartcase'' is ignored.'},
+        \'\Z': {'help_tag': '/\Z', 'line': 'When "\Z" appears anywhere in the pattern, all composing characters are ignored.'},
+        \'\%C': {'help_tag': '/\%C', 'line': 'Use "\%C" to skip any composing characters.'},
+        \'\m': {'help_tag': '/\m', 'line': '''magic'' on for the following chars in the pattern'},
+        \'\M': {'help_tag': '/\M', 'line': '''magic'' off for the following chars in the pattern'},
+        \'\v': {'help_tag': '/\v', 'line': 'the following chars in the pattern are "very magic"'},
+        \'\V': {'help_tag': '/\V', 'line': 'the following chars in the pattern are "very nomagic"'},
+        \'\%#=': {'help_tag': '/\%#=', 'line': 'select regexp engine'},
+        \'x': {'help_tag': '/\%#=', 'line': 'Matches the character "%s" (code %s) or character "%s" (code %s)'},
+        \'X': {'help_tag': '/\%#=', 'line': 'Matches the character "%s" (code %s)'},
         \} "}}}
 
   function! p.follows_nothing(node) "{{{
@@ -262,6 +273,7 @@ function! RExplicateParser() "{{{
 
   function! p.init(...) "{{{
     let self.magic = 'm'
+    let self.ignorecase = 0
     let self.in_collection = 0
     let self.token = ''
     let self.tokens = []
@@ -278,6 +290,7 @@ function! RExplicateParser() "{{{
     let r.normal = 'root'
     let r.id = 'root'
     let r.magic = self.magic
+    let r.ignorecase = self.ignorecase
     let r.parent = {}
     let r.siblings = []
     let r.children = []
@@ -317,6 +330,7 @@ function! RExplicateParser() "{{{
     let n.is_error = 0
     let n.error = []
     let n.magic = self.magic
+    let n.ignorecase = self.ignorecase
     let n.parent = self.parent
     let n.siblings = self.parent.children
     let n.children = []
@@ -327,7 +341,7 @@ function! RExplicateParser() "{{{
     let n.help_tag = self.help_tag(n)
     let n.indent += 1
     let n.value = self.token
-    let n.description = self.description(n)
+    let n.line = ''
     let n.pos = self.pos - strchars(self.token)
     if !empty(n.previous)
       let n.previous.next = n
@@ -344,7 +358,7 @@ function! RExplicateParser() "{{{
         return substitute(a:text, '\m^\(\\.\).\+', '[\1', '')
       elseif self.is_coll_range(a:text)
         " /[a-z]
-        return 'a-b'
+        return self.ignorecase ? 'a-b' : 'A-B'
       elseif a:text =~# '\m^\[[.=].[.=]\]$'
         " /[[.a.][=a=]]
         return substitute(a:text, '\m^\(\[[.=]\).[.=]\]$', '[\1\1]', '')
@@ -375,20 +389,122 @@ function! RExplicateParser() "{{{
   endfunction "}}}
 
   function! p.help_tag(node) "{{{
-    return get(get(self.id_map, a:node.id, {}), 'description', '')
+    return get(get(self.id_map, a:node.id, {}), 'help_tag', '')
   endfunction "}}}
 
-  function! p.description(node, ...) "{{{
-    if a:0
-      let msg = a:1
-    elseif has_key(self.id_map, a:node.id)
-      let msg = get(get(self.id_map, a:node.id, {}), 'description', '')
+  function! p.line(node, ...) "{{{
+    let id = a:node.id
+    DbgRExplicate printf('line: %s', id)
+    let line = get(self.id_map, id,
+          \{'line': 'ERROR: contact this plugin''s author'}).line
+    DbgRExplicate printf('line: %s', line)
+    if id ==? 'x'
+      DbgRExplicate 'line -> literal'
+      if strchars(a:node.normal) == 1
+        DbgRExplicate 'line -> literal -> single'
+        let char = a:node.value
+        let code = char2nr(char)
+      elseif a:node.value =~# '\m^\\[^etrbn]'
+        DbgRExplicate 'line -> literal -> escaped'
+        let char = strcharpart(a:node.value, 1)
+        let code = char2nr(char)
+      elseif a:node.value ==# '\e'
+        DbgRExplicate 'line -> literal -> escape'
+        let char = '<Esc>'
+        let code = 27
+      elseif a:node.value ==# '\t'
+        DbgRExplicate 'line -> literal -> tab'
+        let char = '<Tab>'
+        let code = 9
+      elseif a:node.value ==# '\r'
+        DbgRExplicate 'line -> literal -> car return'
+        let char = '<CR>'
+        let code = 13
+      elseif a:node.value ==# '\b'
+        DbgRExplicate 'line -> literal -> backspace'
+        let char = '<BS>'
+        let code = 8
+      else
+        DbgRExplicate 'line -> literal -> single'
+        let char = a:node.value
+        let code = char2nr(char)
+      endif
+      if id ==# 'X'
+        DbgRExplicate 'line -> literal -> match case'
+        let line = printf(line, char, code)
+      elseif tolower(char) ==# toupper(char)
+        DbgRExplicate 'line -> literal -> no case'
+        let line = get(self.id_map, 'X',
+              \{'line': 'ERROR: contact this plugin''s author'}).line
+        let line = printf(line, char, code)
+      else
+        DbgRExplicate 'line -> literal -> ignore case'
+        let line = printf(line, tolower(char), char2nr(tolower(char)),
+              \toupper(char), char2nr(toupper(char)))
+      endif
+    elseif id ==# 'A-B'
+      DbgRExplicate 'line -> range match case'
+      let line = printf(line, a:node.first, char2nr(a:node.first), a:node.second,
+            \char2nr(a:node.second))
+    elseif id ==# 'a-b'
+      DbgRExplicate 'line -> range ignore case'
+      let line = printf(line,
+            \tolower(a:node.first), char2nr(tolower(a:node.first)),
+            \tolower(a:node.second), char2nr(tolower(a:node.second)),
+            \toupper(a:node.first), char2nr(toupper(a:node.first)),
+            \toupper(a:node.second), char2nr(toupper(a:node.second))
+            \)
+    elseif id =~# '^\m\\{'
+      DbgRExplicate 'line -> brackets'
+      if empty(a:node.min)
+        DbgRExplicate 'line -> brackets -> empty min'
+        if empty(a:node.max)
+          DbgRExplicate 'line -> brackets -> empty min -> empty max'
+          " nothing to do
+        else
+          DbgRExplicate 'line -> brackets -> empty min -> non empty max'
+          let line = printf(line, a:node.max)
+        endif
+      else
+        DbgRExplicate 'line -> brackets -> non empty min'
+        if empty(a:node.max)
+          DbgRExplicate 'line -> brackets -> non empty min -> empty max'
+          let line = printf(line, a:node.min)
+        else
+          DbgRExplicate 'line -> brackets -> non empty min -> non empty max'
+          let line = printf(line, a:node.min, a:node.max)
+        endif
+      endif
+    elseif id =~# '\m^\%(\[\\\|\\%\)[doxuU]'
+      DbgRExplicate 'line -> code point'
+      let code_map = {'d': '%s', 'o': '0%s', 'x': '0x%s', 'u': '0x%s', 'U': '0x%s'}
+      let key = matchstr(id, '\m^\%(\[\\\|\\%\)\zs.')
+      DbgRExplicate printf('line -> code point: normal: %s, key: %s', a:node.normal, key)
+      let number = matchstr(a:node.normal, '\m^\\%\?.0\?\zs.\+')
+      DbgRExplicate printf('line -> code point: number: %s', number)
+      let code = printf(code_map[key], number)
+      DbgRExplicate printf('line -> code point: code: %s', code)
+      let dec = eval(code)
+      DbgRExplicate printf('line -> code point: dec: %s', dec)
+      let char = nr2char(dec)
+      let char_is_lower = char =~# '\%#=2^[[:lower:]]$'
+      let char2 = char_is_lower ? toupper(char) : tolower(char)
+      let has_case = tolower(char) !=# toupper(char)
+      if a:node.ignorecase && char !=# char2
+        DbgRExplicate 'line -> code point -> ignore case'
+        let line = get(self.id_map, id . 'i',
+              \{'line': 'ERROR: contact this plugin''s author'}).line
+        let line = printf(line, char, code, char2)
+      else
+        DbgRExplicate 'line -> code point -> match case'
+        let line = printf(line, char, code)
+      endif
+    elseif has_key(self.id_map, id)
     else
-      let char = a:node.value =~# '^\\.' ? a:node.id[1:] : a:node.id
-      let msg = printf('Matches the character "%s"', char)
     endif
-    let indent = repeat('  ', a:node.indent)
-    return printf('%s%s => %s', indent, a:node.value, msg)
+    let indent = repeat(' ', (a:node.indent * 2))
+    let line = printf('%s%s => %s', indent, a:node.value, line)
+    return line
   endfunction "}}}
 
   function! p.lines() "{{{
@@ -397,7 +513,7 @@ function! RExplicateParser() "{{{
       return extend(lines, self.errors[0].error)
     endif
     call add(lines, '')
-    return extend(lines, map(copy(self.sequence), 'v:val.description'))
+    return extend(lines, map(copy(self.sequence), 'v:val.line'))
   endfunction "}}}
 
   function! p.in_optional_group() "{{{
@@ -424,10 +540,6 @@ function! RExplicateParser() "{{{
 
   function! p.values() "{{{
     return map(copy(self.sequence), 'get(v:val, ''value'', '''')')
-  endfunction "}}}
-
-  function! p.descriptions() "{{{
-    return map(copy(self.sequence), 'get(v:val, ''description'', '''')')
   endfunction "}}}
 
   function! p.ids() "{{{
@@ -466,10 +578,10 @@ function! RExplicateParser() "{{{
     elseif next =~# '\m^\%(\\[\\enbrt]\|[^\\]\)-\%(\\[\\ebnrt]\|[^\\]\)'
       DbgRExplicate printf('is_incomplete_in_collection -> range coming: %s', next)
       return 1
-    elseif self.token =~# '\m^\\[-ebnrt\]^]$'
+    elseif self.token =~# '\m^\\[-\\ebnrt\]^]$'
       DbgRExplicate printf('is_incomplete_in_collection -> escaped done: %s', next)
       return 0
-    elseif self.token ==# '\' && ahead =~# '\m^[-ebnrtdoxuU\]^]$'
+    elseif self.token ==# '\' && ahead =~# '\m^[-\\ebnrtdoxuU\]^]$'
       DbgRExplicate printf('is_incomplete_in_collection -> escaped done: %s', next)
       return 1
     elseif self.token ==# '\'
@@ -569,6 +681,7 @@ function! RExplicateParser() "{{{
   endfunction "}}}
 
   function! p.parse(input) "{{{
+    DbgRExplicate printf('')
     DbgRExplicate printf('parse: %s', a:input)
     call self.init(a:input)
     while self.next()
@@ -581,7 +694,6 @@ function! RExplicateParser() "{{{
         let self.parent = node.parent.parent
         let self.in_collection = 0
         let node.indent -= 1
-        let node.description = self.description(node)
         "}}}
 
       elseif self.in_collection && node.id ==# '^' "{{{
@@ -589,34 +701,29 @@ function! RExplicateParser() "{{{
         if empty(node.previous)
           DbgRExplicate printf('parse -> collection -> negate -> special')
           let node.id = '[^'
-          let node.description = self.description(node)
         else
           DbgRExplicate printf('parse -> collection -> negate -> literal')
-          let node.id = 'x'
-          let node.description = self.description(node)
+          let node.id = node.ignorecase ? 'x' : 'X'
         endif
         "}}}
 
       elseif self.in_collection && self.is_coll_range_id(node.id) "{{{
         DbgRExplicate printf('parse -> collection -> range')
         if node.value[0] ==# '\'
-          let first = strcharpart(node.value, 0, 2)
-          let second = strcharpart(node.value, 3)
+          let node.first = strcharpart(node.value, 0, 2)
+          let node.second = strcharpart(node.value, 3)
         else
-          let first = strcharpart(node.value, 0, 1)
-          let second = strcharpart(node.value, 2)
+          let node.first = strcharpart(node.value, 0, 1)
+          let node.second = strcharpart(node.value, 2)
         endif
         let dict = {'\e': "\e", '\b': "\b", '\n': "\n", '\r': "\r", '\t': "\t",
               \'\\': '\', '\]': ']', '\^': '^', '\-': '-'}
-        let first = get(dict, first, first)
-        DbgRExplicate  printf('parse -> collection -> range: first: %s, second: %s', first, second)
-        let second = get(dict, second, second)
-        if first ># second
+        let node.first = get(dict, node.first, node.first)
+        DbgRExplicate printf('parse -> collection -> range: first: %s, second: %s', node.first, node.second)
+        let node.second = get(dict, node.second, node.second)
+        if node.first ># node.second
           let errormessage = 'reverse range in character class'
           call self.add_error(node, errormessage)
-        else
-          let description = printf('matches a character in the range from "%s" to "%s"', first, second)
-          let node.description = self.description(node, description)
         endif
         "}}}
 
@@ -639,7 +746,6 @@ function! RExplicateParser() "{{{
         let node.siblings = node.parent.siblings
         let node.parent = node.parent.parent
         let node.indent -= 1
-        let node.description = self.description(node)
         let self.parent = node
         "}}}
 
@@ -663,10 +769,7 @@ function! RExplicateParser() "{{{
           else
             " Treat this as a literal character
             call remove(self.nest_stack, -1)
-            let node.description = printf('%s%s => Matches the character "[".',
-                  \repeat('  ', node.indent),
-                  \node.value)
-            let node.id = 'x'
+            let node.id = node.ignorecase ? 'x' : 'X'
           endif
         elseif self.starts_capt_group(node.id)
           DbgRExplicate  printf('parse -> starts group -> capturing group')
@@ -692,16 +795,13 @@ function! RExplicateParser() "{{{
               call self.add_error(node, errormessage)
             else
               let node.id = '\%]'
-              let node.description = self.description(node, 'ends optional sequence')
             endif
           else
-            let node.description = self.description(node)
           endif
         else
           DbgRExplicate  printf('parse -> ends group -> is not paired')
           if node.id ==# ']'
-            let node.id = 'x'
-            let node.description = self.description(node)
+            let node.id = node.ignorecase ? 'x' : 'X'
           elseif empty(self.nest_stack)
             " /\)
             let errormessage = printf('unmatched %s', node.value)
@@ -742,28 +842,8 @@ function! RExplicateParser() "{{{
           DbgRExplicate  printf('parse -> multi -> brackets')
           if self.is_valid_bracket(node.value)
             DbgRExplicate  printf('parse -> multi -> brackets -> valid')
-            let min = matchstr(node.value, '\m\\{-\?\zs\d*')
-            let max = matchstr(node.value, '\m\\{-\?\d*,\zs\d*')
-            if empty(min)
-              DbgRExplicate  printf('parse -> multi -> brackets -> valid -> empty min')
-              if empty(max)
-                DbgRExplicate  printf('parse -> multi -> brackets -> valid -> empty min & max')
-                let description = self.id_map[node.id].description
-              else
-                DbgRExplicate  printf('parse -> multi -> brackets -> valid -> empty min, not max')
-                let description = printf(self.id_map[node.id].description, max)
-              endif
-            else
-              DbgRExplicate  printf('parse -> multi -> brackets -> valid -> not min')
-              if empty(max)
-                DbgRExplicate  printf('parse -> multi -> brackets -> valid -> not min & empty max')
-                let description = printf(self.id_map[node.id].description, min)
-              else
-                DbgRExplicate  printf('parse -> multi -> brackets -> valid -> not min & not max')
-                let description = printf(self.id_map[node.id].description, min, max)
-              endif
-            endif
-            let node.description = self.description(node,description)
+            let node.min = matchstr(node.value, '\m\\{-\?\zs\d*')
+            let node.max = matchstr(node.value, '\m\\{-\?\d*,\zs\d*')
           else
             DbgRExplicate  printf('parse -> multi -> brackets -> invalid')
             let errormessage =
@@ -834,6 +914,11 @@ function! RExplicateParser() "{{{
         call self.add_error(node, errormessage)
         "}}}
 
+      elseif self.is_case(node.id) "{{{
+        let self.ignorecase = node.id ==# '\c'
+        DbgRExplicate  printf('parse -> case: %s', self.ignorecase)
+        "}}}
+
       elseif self.is_magic(node.id) "{{{
         DbgRExplicate  printf('parse -> magic')
         let self.magic = node.id[1]
@@ -845,8 +930,9 @@ function! RExplicateParser() "{{{
 
       else
         DbgRExplicate  printf('parse -> literal match')
-        let node.id = 'x'
+        let node.id = node.ignorecase ? 'x' : 'X'
       endif
+      let node.line = empty(node.error) ? self.line(node) : ''
     endwhile
     if !empty(self.nest_stack)
       DbgRExplicate  printf('parse -> non-empty nest stack')
@@ -931,9 +1017,9 @@ function! RExplicateSetUp(regexp) "{{{
   call setline(1, regexp)
 endfunction "}}}
 
-function! RExplicateTest() "{{{
+function! RExplicateTest(...) abort "{{{
   let debug = get(g:, 'rexplicate_debug', 0)
-  let g:rexplicate_debug = 0
+  let g:rexplicate_debug = a:0 ? a:1 : 0
 
   let p = RExplicateParser()
 
@@ -1087,14 +1173,14 @@ function! RExplicateTest() "{{{
   call assert_true(has_error, input)
 
   let input =     '\%x1234'
-  let expected = ['\%x', 'x', 'x']
+  let expected = ['\%x', 'X', 'X']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '\%o1234'
-  let expected = ['\%o', 'x']
+  let expected = ['\%o', 'X']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
@@ -1115,14 +1201,14 @@ function! RExplicateTest() "{{{
   call assert_false(has_error, input)
 
   let input =     '\%o400'
-  let expected = ['\%o', 'x']
+  let expected = ['\%o', 'X']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '\%o0400'
-  let expected = ['\%o', 'x']
+  let expected = ['\%o', 'X']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
@@ -1136,7 +1222,7 @@ function! RExplicateTest() "{{{
   call assert_false(has_error, input)
 
   let input =     'a\@>'
-  let expected = ['x', '\@>']
+  let expected = ['X', '\@>']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
@@ -1171,28 +1257,28 @@ function! RExplicateTest() "{{{
   call assert_false(has_error, input)
 
   let input =     'a\zsb'
-  let expected = ['x', '\zs', 'x']
+  let expected = ['X', '\zs', 'X']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     'a\zeb'
-  let expected = ['x', '\ze', 'x']
+  let expected = ['X', '\ze', 'X']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '[ab]'
-  let expected = ['[', 'x', 'x', ']']
+  let expected = ['[', 'X', 'X', ']']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '[ab'
-  let expected = ['x', 'x', 'x']
+  let expected = ['X', 'X', 'X']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
@@ -1234,77 +1320,77 @@ function! RExplicateTest() "{{{
   call assert_false(has_error, input)
 
   let input =     '[\U123456789]'
-  let expected = ['[', '[\U', 'x', ']']
+  let expected = ['[', '[\U', 'X', ']']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '[a-b]'
-  let expected = ['[', 'a-b', ']']
+  let expected = ['[', 'A-B', ']']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '[\%]'
-  let expected = ['[', 'x', 'x', ']']
+  let expected = ['[', 'X', 'X', ']']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '\V%[a]'
-  let expected = ['\V', 'x', 'x', 'x', 'x']
+  let expected = ['\V', 'X', 'X', 'X', 'X']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '\V\%[a]'
-  let expected = ['\V', '\%[', 'x', '\%]']
+  let expected = ['\V', '\%[', 'X', '\%]']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '[^a]'
-  let expected = ['[', '[^', 'x', ']']
+  let expected = ['[', '[^', 'X', ']']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '[^-a]'
-  let expected = ['[', '[^', 'x', 'x', ']']
+  let expected = ['[', '[^', 'X', 'X', ']']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '[-a]'
-  let expected = ['[', 'x', 'x', ']']
+  let expected = ['[', 'X', 'X', ']']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '[^]'
-  let expected = ['x', '^', 'x']
+  let expected = ['X', '^', 'X']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '[]'
-  let expected = ['x', 'x']
+  let expected = ['X', 'X']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '[^-]'
-  let expected = ['[', '[^', 'x', ']']
+  let expected = ['[', '[^', 'X', ']']
   let output = p.parse(input).ids()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
