@@ -1,5 +1,5 @@
 " Vim syntax plugin.
-" Language:	relab
+" Language:	rexplicate
 " Maintainer:	Israel Chauca F. <israelchauca@gmail.com>
 
 " Quit when a (custom) syntax file was already loaded
@@ -12,153 +12,153 @@ let s:save_cpo = &cpoptions
 set cpoptions&vim
 syn case match
 
-syn region relabVMagic start=/\%1l\\v/ skip=/\\\\/ end=/\%(\\[MmV]\)\@=\|$/ oneline
-syn region relabNMagic start=/\%1l\\M/ skip=/\\\\/ end=/\%(\\[mvV]\)\@=\|$/ oneline
-syn region relabVNMagic start=/\%1l\\V/ skip=/\\\\/ end=/\%(\\[Mvm]\)\@=\|$/ oneline
-syn region relabMagic start=/\%1l^\%(\\[MvV]\)\@!\|\%1l\\m/ skip=/\\\\/ end=/\%(\\[MvV]\)\@=\|$/ oneline
+syn region rexplicateVMagic start=/\%1l\\v/ skip=/\\\\/ end=/\%(\\[MmV]\)\@=\|$/ oneline
+syn region rexplicateNMagic start=/\%1l\\M/ skip=/\\\\/ end=/\%(\\[mvV]\)\@=\|$/ oneline
+syn region rexplicateVNMagic start=/\%1l\\V/ skip=/\\\\/ end=/\%(\\[Mvm]\)\@=\|$/ oneline
+syn region rexplicateMagic start=/\%1l^\%(\\[MvV]\)\@!\|\%1l\\m/ skip=/\\\\/ end=/\%(\\[MvV]\)\@=\|$/ oneline
 
-syn match relabEscaped /\\./ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabVMagic,relabOptional,relabNOptional,relabVNOptional,relabVOptional
+syn match rexplicateEscaped /\\./ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateVMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional,rexplicateVOptional
 
-syn match relabGroup /\\%\?(\|\\)/ contained containedin=relabMagic,relabNMagic,relabVNMagic
-syn match relabGroup /%\?(\|)/ contained containedin=relabVMagic
+syn match rexplicateGroup /\\%\?(\|\\)/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic
+syn match rexplicateGroup /%\?(\|)/ contained containedin=rexplicateVMagic
 
-syn match relabBranch /\\[|&]/ contained containedin=relabMagic,relabNMagic,relabVNMagic
-syn match relabBranch /[|&]/ contained containedin=relabVMagic
+syn match rexplicateBranch /\\[|&]/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic
+syn match rexplicateBranch /[|&]/ contained containedin=rexplicateVMagic
 
-syn match relabMulti /\\[+=?]/ contained containedin=relabMagic,relabNMagic,relabVNMagic
-syn match relabMulti /[+=?]/ contained containedin=relabVMagic
+syn match rexplicateMulti /\\[+=?]/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic
+syn match rexplicateMulti /[+=?]/ contained containedin=rexplicateVMagic
 
-syn match relabMulti /\*/ contained containedin=relabMagic,relabVMagic
-syn match relabMulti /\\\*/ contained containedin=relabNMagic,relabVNMagic
+syn match rexplicateMulti /\*/ contained containedin=rexplicateMagic,rexplicateVMagic
+syn match rexplicateMulti /\\\*/ contained containedin=rexplicateNMagic,rexplicateVNMagic
 
-syn match relabMulti /\\{-\?\d*,\?\d*\\\?}/ contained containedin=relabMagic,relabNMagic,relabVNMagic
-syn match relabMulti /{-\?\d*,\?\d*\\\?}/ contained containedin=relabVMagic
+syn match rexplicateMulti /\\{-\?\d*,\?\d*\\\?}/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic
+syn match rexplicateMulti /{-\?\d*,\?\d*\\\?}/ contained containedin=rexplicateVMagic
 
-syn match relabMultiDigits /\d\+/ contained containedin=relabMulti
+syn match rexplicateMultiDigits /\d\+/ contained containedin=rexplicateMulti
 
-syn match relabLookaround /\\@\%([>=!]\|\d*<[=!]\)/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional
-syn match relabLookaround /@\%([>=!]\|\d*<[=!]\)/ contained containedin=relabVMagic,relabVOptional
+syn match rexplicateLookaround /\\@\%([>=!]\|\d*<[=!]\)/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional
+syn match rexplicateLookaround /@\%([>=!]\|\d*<[=!]\)/ contained containedin=rexplicateVMagic,rexplicateVOptional
 
-syn match relabLookAroundDigits /\d\+/ contained containedin=relabLookaround
+syn match rexplicateLookAroundDigits /\d\+/ contained containedin=rexplicateLookaround
 
-syn region relabCollection matchgroup=relabGroup start=/\%(\\_\)\?\[\^\?/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=relabMagic,relabOptional
-syn region relabVNCollection matchgroup=relabGroup start=/\\_\?\[\^\?/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=relabVNMagic,relabVNOptional
-syn region relabNCollection matchgroup=relabGroup start=/\\_\?\[\^\?/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=relabNMagic,relabNOptional
-syn region relabVCollection matchgroup=relabGroup start=/\%(\\_\)\?\[\^\?/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=relabVMagic,relabVOptional
+syn region rexplicateCollection matchgroup=rexplicateGroup start=/\%(\\_\)\?\[\^\?/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=rexplicateMagic,rexplicateOptional
+syn region rexplicateVNCollection matchgroup=rexplicateGroup start=/\\_\?\[\^\?/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=rexplicateVNMagic,rexplicateVNOptional
+syn region rexplicateNCollection matchgroup=rexplicateGroup start=/\\_\?\[\^\?/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=rexplicateNMagic,rexplicateNOptional
+syn region rexplicateVCollection matchgroup=rexplicateGroup start=/\%(\\_\)\?\[\^\?/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=rexplicateVMagic,rexplicateVOptional
 
-syn match relabCollItem /\[\%(:\a\+:\|\..\.\|=.=\)\]/ contained containedin=relabCollection,relabVNCollection,relabNCollection,relabVCollection
-syn match relabCollItem /.-./ contained containedin=relabCollection,relabVNCollection,relabNCollection,relabVCollection
-syn match relabCollItem /\\[-ebnrt\]^]/ contained containedin=relabCollection,relabVNCollection,relabNCollection,relabVCollection
+syn match rexplicateCollItem /\[\%(:\a\+:\|\..\.\|=.=\)\]/ contained containedin=rexplicateCollection,rexplicateVNCollection,rexplicateNCollection,rexplicateVCollection
+syn match rexplicateCollItem /.-./ contained containedin=rexplicateCollection,rexplicateVNCollection,rexplicateNCollection,rexplicateVCollection
+syn match rexplicateCollItem /\\[-ebnrt\\\]^]/ contained containedin=rexplicateCollection,rexplicateVNCollection,rexplicateNCollection,rexplicateVCollection
 
-syn match relabCollCodePoint /\\d\d\+/ contained containedin=relabCollection contains=relabCodePointDecDigits
-syn match relabCollCodePoint /\\o0\?\%([1-3]\o\{2}\|\o\{,2}\)/ contained containedin=relabCollection contains=relabCodePointOctDigits
-syn match relabCollCodePoint /\\x\x\{,2}/ contained containedin=relabCollection contains=relabCodePointHexDigits
-syn match relabCollCodePoint /\\u\x\{,4}/ contained containedin=relabCollection contains=relabCodePointHexDecDigits
-syn match relabCollCodePoint /\\U\x\{,8}/ contained containedin=relabCollection contains=relabCodePointHexDecDigits
+syn match rexplicateCollCodePoint /\\d\d\+/ contained containedin=rexplicateCollection contains=rexplicateCodePointDecDigits
+syn match rexplicateCollCodePoint /\\o0\?\%([1-3]\o\{2}\|\o\{,2}\)/ contained containedin=rexplicateCollection contains=rexplicateCodePointOctDigits
+syn match rexplicateCollCodePoint /\\x\x\{,2}/ contained containedin=rexplicateCollection contains=rexplicateCodePointHexDigits
+syn match rexplicateCollCodePoint /\\u\x\{,4}/ contained containedin=rexplicateCollection contains=rexplicateCodePointHexDecDigits
+syn match rexplicateCollCodePoint /\\U\x\{,8}/ contained containedin=rexplicateCollection contains=rexplicateCodePointHexDecDigits
 
-syn region relabOptional matchgroup=relabGroup start=/\\%\[/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=relabMagic
-syn region relabVNOptional matchgroup=relabGroup start=/\\%\[/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=relabVNMagic
-syn region relabNOptional matchgroup=relabGroup start=/\\%\[/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=relabNMagic
-syn region relabVOptional matchgroup=relabGroup start=/%\[/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=relabVMagic
+syn region rexplicateOptional matchgroup=rexplicateGroup start=/\\%\[/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=rexplicateMagic
+syn region rexplicateVNOptional matchgroup=rexplicateGroup start=/\\%\[/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=rexplicateVNMagic
+syn region rexplicateNOptional matchgroup=rexplicateGroup start=/\\%\[/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=rexplicateNMagic
+syn region rexplicateVOptional matchgroup=rexplicateGroup start=/%\[/ skip=/\\\\\|\\\]/ end=/\]/ contained oneline containedin=rexplicateVMagic
 
-syn match relabError /\\[|&()+=?]\|\*\|\\{-\?\d*,\?\d*\\\?}/ contained containedin=relabOptional
-syn match relabError /\\[|&()+=?*]\|\\{-\?\d*,\?\d*\\\?}/ contained containedin=relabVNOptional,relabNOptional
-syn match relabError /[|&()+=?*]\|{-\?\d*,\?\d*\\\?}/ contained containedin=relabVOptional
+syn match rexplicateError /\\[|&()+=?]\|\*\|\\{-\?\d*,\?\d*\\\?}/ contained containedin=rexplicateOptional
+syn match rexplicateError /\\[|&()+=?*]\|\\{-\?\d*,\?\d*\\\?}/ contained containedin=rexplicateVNOptional,rexplicateNOptional
+syn match rexplicateError /[|&()+=?*]\|{-\?\d*,\?\d*\\\?}/ contained containedin=rexplicateVOptional
 
-syn match relabCharClass /\\_\?[ADFHIKLOPSUWXadfhiklopsuwx]/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabVMagic,relabOptional,relabNOptional,relabVNOptional,relabVOptional
+syn match rexplicateCharClass /\\_\?[ADFHIKLOPSUWXadfhiklopsuwx]/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateVMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional,rexplicateVOptional
 
-syn match relabBEOL /\%(\\_\)\?[$^]/ contained containedin=relabMagic,relabVMagic,relabOtional,relabVOptional
-syn match relabBEOL /\\_\?[$^]/ contained containedin=relabNMagic,relabVNMagic,relabNOptional,relabVNOptional
+syn match rexplicateBEOL /\%(\\_\)\?[$^]/ contained containedin=rexplicateMagic,rexplicateVMagic,rexplicateOtional,rexplicateVOptional
+syn match rexplicateBEOL /\\_\?[$^]/ contained containedin=rexplicateNMagic,rexplicateVNMagic,rexplicateNOptional,rexplicateVNOptional
 
-syn match relabLastSubst /\~/ contained containedin=relabMagic,relabVMagic,relabOtional,relabVOptional
-syn match relabLastSubst /\\\~/ contained containedin=relabNMagic,relabVNMagic,relabNOptional,relabVNOptional
+syn match rexplicateLastSubst /\~/ contained containedin=rexplicateMagic,rexplicateVMagic,rexplicateOtional,rexplicateVOptional
+syn match rexplicateLastSubst /\\\~/ contained containedin=rexplicateNMagic,rexplicateVNMagic,rexplicateNOptional,rexplicateVNOptional
 
-syn match relabBEOF /\\%[$^]/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional
-syn match relabBEOF /%[$^]/ contained containedin=relabVMagic,relabVOptional
+syn match rexplicateBEOF /\\%[$^]/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional
+syn match rexplicateBEOF /%[$^]/ contained containedin=rexplicateVMagic,rexplicateVOptional
 
-syn match relabAny /\(\\_\)\?\./ contained containedin=relabMagic,relabVMagic,relabOptional,relabVOptional
-syn match relabAny /\\_\?\./ contained containedin=relabNMagic,relabVNMagic,relabNOptional,relabVNOptional
+syn match rexplicateAny /\(\\_\)\?\./ contained containedin=rexplicateMagic,rexplicateVMagic,rexplicateOptional,rexplicateVOptional
+syn match rexplicateAny /\\_\?\./ contained containedin=rexplicateNMagic,rexplicateVNMagic,rexplicateNOptional,rexplicateVNOptional
 
-syn match relabStartEnd /\\z[se]/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabVMagic,relabOptional,relabNOptional,relabVNOptional,relabVOptional
+syn match rexplicateStartEnd /\\z[se]/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateVMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional,rexplicateVOptional
 
-syn match relabZeroWidth /\\[<>]\|\\%[#V^$]/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional
-syn match relabZeroWidth /[<>]\|%[#V^$]/ contained containedin=relabVMagic,relabVOptional
+syn match rexplicateZeroWidth /\\[<>]\|\\%[#V^$]/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional
+syn match rexplicateZeroWidth /[<>]\|%[#V^$]/ contained containedin=rexplicateVMagic,rexplicateVOptional
 
-syn match relabMark /\\%'[0-9a-zA-Z'`\[\]<>]/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional
-syn match relabMark /%'[0-9a-zA-Z'`\[\]<>]/ contained containedin=relabVMagic,relabVOptional
+syn match rexplicateMark /\\%'[0-9a-zA-Z'`\[\]<>]/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional
+syn match rexplicateMark /%'[0-9a-zA-Z'`\[\]<>]/ contained containedin=rexplicateVMagic,rexplicateVOptional
 
-syn match relabLCV /\\%[<>]\?\d*[lcv]/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional
-syn match relabLCV /%[<>]\?\d*[lcv]/ contained containedin=relabVMagic,relabVOptional
+syn match rexplicateLCV /\\%[<>]\?\d*[lcv]/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional
+syn match rexplicateLCV /%[<>]\?\d*[lcv]/ contained containedin=rexplicateVMagic,rexplicateVOptional
 
-syn match relabBackRef /\\z\?[1-9]/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabVMagic,relabOptional,relabNOptional,relabVNOptional,relabVOptional
+syn match rexplicateBackRef /\\z\?[1-9]/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateVMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional,rexplicateVOptional
 
-syn match relabSynMod /\\[cCZmMvV]/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabVMagic,relabOptional,relabNOptional,relabVNOptional,relabVOptional
+syn match rexplicateSynMod /\\[cCZmMvV]/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateVMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional,rexplicateVOptional
 
-syn match relabEngine /^\\%#=\d/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabVMagic,relabOptional,relabNOptional,relabVNOptional,relabVOptional
+syn match rexplicateEngine /^\\%#=\d/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateVMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional,rexplicateVOptional
 
-syn match relabCompChar /\\%C/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional
-syn match relabCompChar /%C/ contained containedin=relabVMagic,relabVOptional
+syn match rexplicateCompChar /\\%C/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional
+syn match rexplicateCompChar /%C/ contained containedin=rexplicateVMagic,rexplicateVOptional
 
-syn match relabCodePoint /\\%d\d\+/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional contains=relabCodePointDecDigits
-syn match relabCodePoint /%d\d\+/ contained containedin=relabVMagic,relabVOptional contains=relabCodePointDecDigits
+syn match rexplicateCodePoint /\\%d\d\+/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional contains=rexplicateCodePointDecDigits
+syn match rexplicateCodePoint /%d\d\+/ contained containedin=rexplicateVMagic,rexplicateVOptional contains=rexplicateCodePointDecDigits
 
-syn match relabCodePoint /\\%o0\?\%([1-3]\o\{2}\|\o\{,2}\)/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional contains=relabCodePointOctDigits
-syn match relabCodePoint /%o0\?\%([1-3]\o\{2}\|\o\{,2}\)/ contained containedin=relabVMagic,relabVOptional contains=relabCodePointOctDigits
+syn match rexplicateCodePoint /\\%o0\?\%([1-3]\o\{2}\|\o\{,2}\)/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional contains=rexplicateCodePointOctDigits
+syn match rexplicateCodePoint /%o0\?\%([1-3]\o\{2}\|\o\{,2}\)/ contained containedin=rexplicateVMagic,rexplicateVOptional contains=rexplicateCodePointOctDigits
 
-syn match relabCodePoint /\\%x\x\{,2}/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional contains=relabCodePointHexDigits
-syn match relabCodePoint /%x\x\{,2}/ contained containedin=relabVMagic,relabVOptional contains=relabCodePointHexDigits
+syn match rexplicateCodePoint /\\%x\x\{,2}/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional contains=rexplicateCodePointHexDigits
+syn match rexplicateCodePoint /%x\x\{,2}/ contained containedin=rexplicateVMagic,rexplicateVOptional contains=rexplicateCodePointHexDigits
 
-syn match relabCodePoint /\\%u\x\{,4}/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional contains=relabCodePointHexDigits
-syn match relabCodePoint /%u\x\{,4}/ contained containedin=relabVMagic,relabVOptional contains=relabCodePointHexDigits
+syn match rexplicateCodePoint /\\%u\x\{,4}/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional contains=rexplicateCodePointHexDigits
+syn match rexplicateCodePoint /%u\x\{,4}/ contained containedin=rexplicateVMagic,rexplicateVOptional contains=rexplicateCodePointHexDigits
 
-syn match relabCodePoint /\\%U\x\{,8}/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabOptional,relabNOptional,relabVNOptional contains=relabCodePointHexDigits
-syn match relabCodePoint /%U\x\{,8}/ contained containedin=relabVMagic,relabVOptional contains=relabCodePointHexDigits
+syn match rexplicateCodePoint /\\%U\x\{,8}/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional contains=rexplicateCodePointHexDigits
+syn match rexplicateCodePoint /%U\x\{,8}/ contained containedin=rexplicateVMagic,rexplicateVOptional contains=rexplicateCodePointHexDigits
 
-syn match relabCodePointDecDigits /\d/ contained containedin=relabCodePoint
-syn match relabCodePointOctDigits /\o/ contained containedin=relabCodePoint
-syn match relabCodePointHexDigits /\x/ contained containedin=relabCodePoint
+syn match rexplicateCodePointDecDigits /\d/ contained containedin=rexplicateCodePoint
+syn match rexplicateCodePointOctDigits /\o/ contained containedin=rexplicateCodePoint
+syn match rexplicateCodePointHexDigits /\x/ contained containedin=rexplicateCodePoint
 
-syn match relabBackslash /\\\\/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabVMagic,relabOptional,relabNOptional,relabVNOptional,relabVOptional,relabCollection,relab.NCollection,relabVNCollection,relabVCollection
+syn match rexplicateBackslash /\\\\/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateVMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional,rexplicateVOptional
 
-syn region relabReport start=/\%2l/ end=/\%$/
-syn region relabReportError matchgroup=relabError start=/^-*\^\+$/ end=/^Error:.*/ contained containedin=relabReport
-syn match relabReportItem /^\%(\s*\S\+\)\?\s\+=>/ contained containedin=relabReport
-syn match relabReportPiece /^\s*\zs\S\+/ contained containedin=relabReportItem
-syn match relabReportArrow /=>/ contained containedin=relabReportItem
+syn region rexplicateReport start=/\%2l/ end=/\%$/
+syn region rexplicateReportError matchgroup=rexplicateError start=/^-*\^\+$/ end=/^Error:.*/ contained containedin=rexplicateReport
+syn match rexplicateReportItem /^\%(\s*\S\+\)\?\s\+=>/ contained containedin=rexplicateReport
+syn match rexplicateReportPiece /^\s*\zs\S\+/ contained containedin=rexplicateReportItem
+syn match rexplicateReportArrow /=>/ contained containedin=rexplicateReportItem
 
 " Define the default highlighting.
 " Only used when an item doesn't have highlighting yet
-hi def link relabGroup			Statement
-hi def link relabBranch			Statement
-hi def link relabMulti			Special
-hi def link relabMultiDigits		Constant
-hi def link relabLookaround		Special
-hi def link relabLookaroundDigits	Constant
-hi def link relabCollItem		Constant
-hi def link relabCollCodePoint		Constant
-hi def link relabCharClass		Constant
-hi def link relabBEOL			Special
-hi def link relabBEOF			Special
-hi def link relabLastSubst		Special
-hi def link relabAny			Special
-hi def link relabStartEnd		Special
-hi def link relabZeroWidth		Special
-hi def link relabMark			Special
-hi def link relabLCV			Special
-hi def link relabBackRef		Special
-hi def link relabSynMod			Type
-hi def link relabEngine			Type
-hi def link relabCompChar		Constant
-hi def link relabCodePoint		Special
-hi def link relabCodePointDecDigits	Constant
-hi def link relabCodePointOctDigits	Constant
-hi def link relabCodePointHexDigits	Constant
-hi def link relabEscaped		Constant
-hi def link relabError			Error
-hi def link relabReportPiece		Identifier
-hi def link relabReportArrow		Special
+hi def link rexplicateGroup			Statement
+hi def link rexplicateBranch			Statement
+hi def link rexplicateMulti			Special
+hi def link rexplicateMultiDigits		Constant
+hi def link rexplicateLookaround		Special
+hi def link rexplicateLookaroundDigits		Constant
+hi def link rexplicateCollItem			Constant
+hi def link rexplicateCollCodePoint		Constant
+hi def link rexplicateCharClass			Constant
+hi def link rexplicateBEOL			Special
+hi def link rexplicateBEOF			Special
+hi def link rexplicateLastSubst			Special
+hi def link rexplicateAny			Special
+hi def link rexplicateStartEnd			Special
+hi def link rexplicateZeroWidth			Special
+hi def link rexplicateMark			Special
+hi def link rexplicateLCV			Special
+hi def link rexplicateBackRef			Special
+hi def link rexplicateSynMod			Type
+hi def link rexplicateEngine			Type
+hi def link rexplicateCompChar			Constant
+hi def link rexplicateCodePoint			Special
+hi def link rexplicateCodePointDecDigits	Constant
+hi def link rexplicateCodePointOctDigits	Constant
+hi def link rexplicateCodePointHexDigits	Constant
+hi def link rexplicateEscaped			Constant
+hi def link rexplicateError			Error
+hi def link rexplicateReportPiece		Identifier
+hi def link rexplicateReportArrow		Special
 
-let b:current_syntax = 'relab'
+let b:current_syntax = 'rexplicate'
 
 let &cpoptions = s:save_cpo
 unlet s:save_cpo
