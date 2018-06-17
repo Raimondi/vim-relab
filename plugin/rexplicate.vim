@@ -285,7 +285,6 @@ function! RExplicateParser() "{{{
 
     let r = {}
     let r.value = 'root'
-    let r.normal = 'root'
     let r.id = 'root'
     let r.magic = self.magic
     let r.ignorecase = self.ignorecase
@@ -300,27 +299,27 @@ function! RExplicateParser() "{{{
     return self
   endfunction "}}}
 
-  function! p.to_magic(token, magic) "{{{
-    if a:magic ==# 'M'
-      if a:token =~# '\m^\\[.*~[]$'
-        return a:token[1:]
-      elseif a:token =~# '\m^[.*~[]$'
-        return '\' . a:token
+  function! p.node2magic(node) "{{{
+    if a:node.magic ==# 'M'
+      if a:node.value =~# '\m^\\[.*~[]$'
+        return a:node.value[1:]
+      elseif a:node.value =~# '\m^[.*~[]$'
+        return '\' . a:node.value
       endif
-    elseif a:magic ==# 'v'
-      if a:token =~# '\m^[+?{()@%<>=]'
-        return '\' . a:token
-      elseif a:token =~# '\m^\\[+?{()@%<>=]'
-        return a:token[1:]
+    elseif a:node.magic ==# 'v'
+      if a:node.value =~# '\m^[+?{()@%<>=]'
+        return '\' . a:node.value
+      elseif a:node.value =~# '\m^\\[+?{()@%<>=]'
+        return a:node.value[1:]
       endif
-    elseif a:magic ==# 'V'
-      if a:token =~# '\m^\\[[.*~^$]$'
-        return a:token[1:]
-      elseif a:token =~# '\m^[[.*~^$]$'
-        return '\' . a:token
+    elseif a:node.magic ==# 'V'
+      if a:node.value =~# '\m^\\[[.*~^$]$'
+        return a:node.value[1:]
+      elseif a:node.value =~# '\m^[[.*~^$]$'
+        return '\' . a:node.value
       endif
     endif
-    return a:token
+    return a:node.value
   endfunction "}}}
 
   function! p.new_child() "{{{
@@ -334,11 +333,9 @@ function! RExplicateParser() "{{{
     let n.children = []
     let n.previous = get(self.parent.children, -1, {})
     let n.next = {}
-    let n.normal = self.to_magic(self.token, self.magic)
-    let n.id = self.to_id(n.normal)
-    let n.help_tag = self.help_tag(n)
-    let n.indent += 1
     let n.value = self.token
+    let n.id = self.to_id(self.node2magic(n))
+    let n.indent += 1
     let n.line = ''
     let n.pos = self.pos - strchars(self.token)
     if !empty(n.previous)
@@ -351,7 +348,7 @@ function! RExplicateParser() "{{{
 
   function! p.to_id(text) "{{{
     DbgRExplicate printf('to_id: %s', a:text)
-    let text = self.to_magic(a:text, self.magic)
+    let text = self.node2magic({'value': a:text, 'magic': self.magic})
     if self.in_collection
         DbgRExplicate printf('to_id -> collection')
       if a:text =~# '\m^\\[doxuU]'
@@ -390,7 +387,7 @@ function! RExplicateParser() "{{{
     elseif a:text =~# '\m^\\%#=.\?'
       " regexp engine
       return '\%#='
-    elseif self.is_look_around(self.to_magic(text, self.magic))
+    elseif self.is_look_around(text)
       return substitute(a:text, '\d\+', '123', '')
     endif
     return a:text
@@ -408,7 +405,7 @@ function! RExplicateParser() "{{{
     DbgRExplicate printf('line: %s', line)
     if id ==? 'x'
       DbgRExplicate 'line -> literal'
-      if strchars(a:node.normal) == 1
+      if strchars(self.node2magic(a:node)) == 1
         DbgRExplicate 'line -> literal -> single'
         let char = a:node.value
         let code = char2nr(char)
@@ -485,13 +482,14 @@ function! RExplicateParser() "{{{
       endif
     elseif id =~# '\m^\\@123<[=!]$'
       DbgRExplicate 'line -> look behind'
-      let line = printf(line, matchstr(a:node.normal, '\d\+'))
+      let line = printf(line, matchstr(self.node2magic(a:node), '\d\+'))
     elseif id =~# '\m^\%(\[\\\|\\%\)[doxuU]'
       DbgRExplicate 'line -> code point'
       let code_map = {'d': '%s', 'o': '0%s', 'x': '0x%s', 'u': '0x%s', 'U': '0x%s'}
       let key = matchstr(id, '\m^\%(\[\\\|\\%\)\zs.')
-      DbgRExplicate printf('line -> code point: normal: %s, key: %s', a:node.normal, key)
-      let number = matchstr(a:node.normal, '\m^\\%\?.0\?\zs.\+')
+      DbgRExplicate printf('line -> code point: magic: %s, key: %s',
+            \self.node2magic(a:node), key)
+      let number = matchstr(self.node2magic(a:node), '\m^\\%\?.0\?\zs.\+')
       DbgRExplicate printf('line -> code point: number: %s', number)
       let code = printf(code_map[key], number)
       DbgRExplicate printf('line -> code point: code: %s', code)
@@ -547,8 +545,8 @@ function! RExplicateParser() "{{{
     return map(copy(self.sequence), 'get(v:val, a:key, '''')')
   endfunction "}}}
 
-  function! p.normals() "{{{
-    return map(copy(self.sequence), 'get(v:val, ''normal'', '''')')
+  function! p.magics() "{{{
+    return map(copy(self.sequence), 'self.node2magic(v:val)')
   endfunction "}}}
 
   function! p.values() "{{{
@@ -643,7 +641,7 @@ function! RExplicateParser() "{{{
     if self.in_collection
       return self.incomplete_in_collection()
     endif
-    let token = self.to_magic(self.token, self.magic)
+    let token = self.node2magic({'value': self.token, 'magic': self.magic})
     if self.incomplete_main(token)
       DbgRExplicate printf('is_incomplete -> main: %s', token)
       return 1
@@ -833,7 +831,7 @@ function! RExplicateParser() "{{{
           DbgRExplicate  printf('parse -> has underscore -> valid')
         elseif self.is_invalid_underscore(node.id)
           DbgRExplicate  printf('parse -> has underscore -> invalid')
-          let char = strcharpart(node.normal, 2)
+          let char = strcharpart(self.node2magic(node), 2)
           let errormessage = 'invalid use of \_'
           call self.add_error(node, errormessage)
         endif
@@ -894,8 +892,8 @@ function! RExplicateParser() "{{{
         "}}}
 
       elseif self.like_code_point(node.id) "{{{
-        DbgRExplicate  printf('parse -> like code point: normal: %s', node.normal)
-        if self.is_code_point(node.normal)
+        DbgRExplicate  printf('parse -> like code point: magic: %s', self.node2magic(node))
+        if self.is_code_point(self.node2magic(node))
           DbgRExplicate  printf('parse -> like code point -> hexadecimal 8')
         else
           DbgRExplicate  printf('parse -> like code point -> invalid code point')
@@ -945,7 +943,7 @@ function! RExplicateParser() "{{{
         DbgRExplicate  printf('parse -> literal match')
         let node.id = node.ignorecase ? 'x' : 'X'
       endif
-      let node.line = empty(node.error) ? self.line(node) : ''
+      let node.line = node.is_error ? '' : self.line(node)
     endwhile
     if !empty(self.nest_stack)
       DbgRExplicate  printf('parse -> non-empty nest stack')
@@ -1040,28 +1038,28 @@ function! RExplicateTest(...) abort "{{{
 
   let input =     ''
   let expected = []
-  let output = p.parse(input).normals()
+  let output = p.parse(input).magics()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '^'
   let expected = ['^']
-  let output = p.parse(input).normals()
+  let output = p.parse(input).magics()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '^a\+'
   let expected = ['^', 'a', '\+']
-  let output = p.parse(input).normals()
+  let output = p.parse(input).magics()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
   let input =     '^a\+\vb+'
   let expected = ['^', 'a', '\+', '\v', 'b', '\+']
-  let output = p.parse(input).normals()
+  let output = p.parse(input).magics()
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
