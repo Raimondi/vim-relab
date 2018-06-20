@@ -270,7 +270,7 @@ function! RExplicateParser() "{{{
   endfunction "}}}
 
   function! p.init(...) "{{{
-    let self.magic = 'm'
+    let self.magicness = 'm'
     let self.ignorecase = 0
     let self.in_collection = 0
     let self.token = ''
@@ -286,7 +286,7 @@ function! RExplicateParser() "{{{
     let r = {}
     let r.value = 'root'
     let r.id = 'root'
-    let r.magic = self.magic
+    let r.magicness = self.magicness
     let r.ignorecase = self.ignorecase
     let r.parent = {}
     let r.siblings = []
@@ -300,19 +300,19 @@ function! RExplicateParser() "{{{
   endfunction "}}}
 
   function! p.node2magic(node) "{{{
-    if a:node.magic ==# 'M'
+    if a:node.magicness ==# 'M'
       if a:node.value =~# '\m^\\[.*~[]$'
         return a:node.value[1:]
       elseif a:node.value =~# '\m^[.*~[]$'
         return '\' . a:node.value
       endif
-    elseif a:node.magic ==# 'v'
+    elseif a:node.magicness ==# 'v'
       if a:node.value =~# '\m^[+?{()@%<>=]'
         return '\' . a:node.value
       elseif a:node.value =~# '\m^\\[+?{()@%<>=]'
         return a:node.value[1:]
       endif
-    elseif a:node.magic ==# 'V'
+    elseif a:node.magicness ==# 'V'
       if a:node.value =~# '\m^\\[[.*~^$]$'
         return a:node.value[1:]
       elseif a:node.value =~# '\m^[[.*~^$]$'
@@ -326,7 +326,7 @@ function! RExplicateParser() "{{{
     let n = copy(self.parent)
     let n.is_error = 0
     let n.error = []
-    let n.magic = self.magic
+    let n.magicness = self.magicness
     let n.ignorecase = self.ignorecase
     let n.parent = self.parent
     let n.siblings = self.parent.children
@@ -334,7 +334,8 @@ function! RExplicateParser() "{{{
     let n.previous = get(self.parent.children, -1, {})
     let n.next = {}
     let n.value = self.token
-    let n.id = self.to_id(self.node2magic(n))
+    let n.magic = self.node2magic(n)
+    let n.id = self.to_id(n.magic)
     let n.indent += 1
     let n.line = ''
     let n.pos = self.pos - strchars(self.token)
@@ -348,7 +349,7 @@ function! RExplicateParser() "{{{
 
   function! p.to_id(text) "{{{
     DbgRExplicate printf('to_id: %s', a:text)
-    let text = self.node2magic({'value': a:text, 'magic': self.magic})
+    let text = self.node2magic({'value': a:text, 'magicness': self.magicness})
     if self.in_collection
         DbgRExplicate printf('to_id -> collection')
       if a:text =~# '\m^\\[doxuU]'
@@ -405,7 +406,7 @@ function! RExplicateParser() "{{{
     DbgRExplicate printf('line: %s', line)
     if id ==? 'x'
       DbgRExplicate 'line -> literal'
-      if strchars(self.node2magic(a:node)) == 1
+      if strchars(a:node.magic) == 1
         DbgRExplicate 'line -> literal -> single'
         let char = a:node.value
         let code = char2nr(char)
@@ -482,14 +483,14 @@ function! RExplicateParser() "{{{
       endif
     elseif id =~# '\m^\\@123<[=!]$'
       DbgRExplicate 'line -> look behind'
-      let line = printf(line, matchstr(self.node2magic(a:node), '\d\+'))
+      let line = printf(line, matchstr(a:node.magic, '\d\+'))
     elseif id =~# '\m^\%(\[\\\|\\%\)[doxuU]'
       DbgRExplicate 'line -> code point'
       let code_map = {'d': '%s', 'o': '0%s', 'x': '0x%s', 'u': '0x%s', 'U': '0x%s'}
       let key = matchstr(id, '\m^\%(\[\\\|\\%\)\zs.')
-      DbgRExplicate printf('line -> code point: magic: %s, key: %s',
-            \self.node2magic(a:node), key)
-      let number = matchstr(self.node2magic(a:node), '\m^\\%\?.0\?\zs.\+')
+      DbgRExplicate printf('line -> code point: magicness: %s, key: %s',
+            \a:node.magic, key)
+      let number = matchstr(a:node.magic, '\m^\\%\?.0\?\zs.\+')
       DbgRExplicate printf('line -> code point: number: %s', number)
       let code = printf(code_map[key], number)
       DbgRExplicate printf('line -> code point: code: %s', code)
@@ -546,7 +547,7 @@ function! RExplicateParser() "{{{
   endfunction "}}}
 
   function! p.magics() "{{{
-    return map(copy(self.sequence), 'self.node2magic(v:val)')
+    return map(copy(self.sequence), 'v:val.magic')
   endfunction "}}}
 
   function! p.values() "{{{
@@ -641,7 +642,7 @@ function! RExplicateParser() "{{{
     if self.in_collection
       return self.incomplete_in_collection()
     endif
-    let token = self.node2magic({'value': self.token, 'magic': self.magic})
+    let token = self.node2magic({'value': self.token, 'magicness': self.magicness})
     if self.incomplete_main(token)
       DbgRExplicate printf('is_incomplete -> main: %s', token)
       return 1
@@ -831,7 +832,7 @@ function! RExplicateParser() "{{{
           DbgRExplicate  printf('parse -> has underscore -> valid')
         elseif self.is_invalid_underscore(node.id)
           DbgRExplicate  printf('parse -> has underscore -> invalid')
-          let char = strcharpart(self.node2magic(node), 2)
+          let char = strcharpart(node.magic, 2)
           let errormessage = 'invalid use of \_'
           call self.add_error(node, errormessage)
         endif
@@ -886,14 +887,14 @@ function! RExplicateParser() "{{{
         DbgRExplicate  printf('parse -> starts with @')
         if node.id !=# '\@>'
           let errormessage = printf('invalid character after %s',
-                \(node.magic ==# 'v' ? '@' : '\@'))
+                \(node.magicness ==# 'v' ? '@' : '\@'))
           call self.add_error(node, errormessage)
         endif
         "}}}
 
       elseif self.like_code_point(node.id) "{{{
-        DbgRExplicate  printf('parse -> like code point: magic: %s', self.node2magic(node))
-        if self.is_code_point(self.node2magic(node))
+        DbgRExplicate  printf('parse -> like code point: magicness: %s', node.magic)
+        if self.is_code_point(node.magic)
           DbgRExplicate  printf('parse -> like code point -> hexadecimal 8')
         else
           DbgRExplicate  printf('parse -> like code point -> invalid code point')
@@ -931,8 +932,8 @@ function! RExplicateParser() "{{{
         "}}}
 
       elseif self.is_magic(node.id) "{{{
-        DbgRExplicate  printf('parse -> magic')
-        let self.magic = node.id[1]
+        DbgRExplicate  printf('parse -> magicness')
+        let self.magicness = node.id[1]
         "}}}
 
       elseif node.value !=? 'x' && has_key(self.id_map, node.id) "{{{
