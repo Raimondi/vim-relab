@@ -1023,7 +1023,7 @@ function! RExplicateSetUp(regexp) "{{{
     augroup RExplicate
       autocmd!
       autocmd TextChanged,TextChangedI <buffer> call RExplicateOnTextChange()
-      autocmd BufWinLeave,WinLeave <buffer> let @/ = getline(1)
+      "autocmd BufWinLeave,WinLeave <buffer> let @/ = getline(1)
     augroup END
   endif
   call setline(1, regexp)
