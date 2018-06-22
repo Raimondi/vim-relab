@@ -76,7 +76,7 @@ function! RExplicateParser() "{{{
   let p.is_code_point =
         \{t -> t =~# '\m^\\%\(d\d\+\|o0\?\o\{1,3}\|x\x\{1,2}\|u\x\{1,4}\|U\x\{1,8}\)$'}
   let p.is_invalid_percent =
-        \{t -> t =~# '\m^\\%[^V#^$C]'}
+        \{t -> t =~# '\m^\\%[^V#^$C]\?$'}
   let p.is_mark =
         \{t -> t =~# '\m^\\%[<>]\?''[a-zA-Z0-9''[\]<>]$'}
   let p.is_lcv =
@@ -1547,6 +1547,13 @@ function! RExplicateTest(...) abort "{{{
   call assert_equal(expected, output, input)
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
+
+  let input =     '\%'
+  let expected = ['^^', 'Error: invalid character after \%']
+  let output = p.parse(input).lines()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_true(has_error, input)
 
   let input =     '\)'
   let expected = ['^^', 'Error: unmatched \)']
