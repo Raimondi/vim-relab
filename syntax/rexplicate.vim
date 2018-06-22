@@ -120,43 +120,46 @@ syn match rexplicateCodePointHexDigits /\x/ contained containedin=rexplicateCode
 
 syn match rexplicateBackslash /\\\\/ contained containedin=rexplicateMagic,rexplicateNMagic,rexplicateVNMagic,rexplicateVMagic,rexplicateOptional,rexplicateNOptional,rexplicateVNOptional,rexplicateVOptional
 
-syn region rexplicateReport start=/\%2l/ end=/\%$/
-syn region rexplicateReportError matchgroup=rexplicateError start=/^-*\^\+$/ end=/^Error:.*/ contained containedin=rexplicateReport
+syn region rexplicateReport start=/\%2l^/re=s-1 end=/\_^^^^^^^^^^^ .\+ ^^^^^^^^^^$/
+syn region rexplicateReportError matchgroup=rexplicateWarning start=/^-*\^\+$/ end=/^Error:.*/ contained containedin=rexplicateReport
 syn match rexplicateReportItem /^\%(\s*\S\+\)\?\s\+=>/ contained containedin=rexplicateReport
 syn match rexplicateReportPiece /^\s*\zs\S\+/ contained containedin=rexplicateReportItem
 syn match rexplicateReportArrow /=>/ contained containedin=rexplicateReportItem
+syn match rexplicateSampleLine /^^^^^^^^^^^ .\+ ^^^^^^^^^^$/ contained containedin=rexplicateReport
 
 " Define the default highlighting.
 " Only used when an item doesn't have highlighting yet
-hi def link rexplicateGroup			Statement
-hi def link rexplicateBranch			Statement
-hi def link rexplicateMulti			Special
-hi def link rexplicateMultiDigits		Constant
-hi def link rexplicateLookaround		Special
-hi def link rexplicateLookaroundDigits		Constant
-hi def link rexplicateCollItem			Constant
-hi def link rexplicateCollCodePoint		Constant
-hi def link rexplicateCharClass			Constant
-hi def link rexplicateBEOL			Special
-hi def link rexplicateBEOF			Special
-hi def link rexplicateLastSubst			Special
-hi def link rexplicateAny			Special
-hi def link rexplicateStartEnd			Special
-hi def link rexplicateZeroWidth			Special
-hi def link rexplicateMark			Special
-hi def link rexplicateLCV			Special
-hi def link rexplicateBackRef			Special
-hi def link rexplicateSynMod			Type
-hi def link rexplicateEngine			Type
-hi def link rexplicateCompChar			Constant
-hi def link rexplicateCodePoint			Special
-hi def link rexplicateCodePointDecDigits	Constant
-hi def link rexplicateCodePointOctDigits	Constant
-hi def link rexplicateCodePointHexDigits	Constant
-hi def link rexplicateEscaped			Constant
-hi def link rexplicateError			Error
-hi def link rexplicateReportPiece		Identifier
-hi def link rexplicateReportArrow		Special
+hi default link rexplicateGroup			Statement
+hi default link rexplicateBranch		Statement
+hi default link rexplicateMulti			Special
+hi default link rexplicateMultiDigits		Constant
+hi default link rexplicateLookaround		Special
+hi default link rexplicateLookaroundDigits	Constant
+hi default link rexplicateCollItem		Constant
+hi default link rexplicateCollCodePoint		Constant
+hi default link rexplicateCharClass		Constant
+hi default link rexplicateBEOL			Special
+hi default link rexplicateBEOF			Special
+hi default link rexplicateLastSubst		Special
+hi default link rexplicateAny			Special
+hi default link rexplicateStartEnd		Special
+hi default link rexplicateZeroWidth		Special
+hi default link rexplicateMark			Special
+hi default link rexplicateLCV			Special
+hi default link rexplicateBackRef		Special
+hi default link rexplicateSynMod		Type
+hi default link rexplicateEngine		Type
+hi default link rexplicateCompChar		Constant
+hi default link rexplicateCodePoint		Special
+hi default link rexplicateCodePointDecDigits	Constant
+hi default link rexplicateCodePointOctDigits	Constant
+hi default link rexplicateCodePointHexDigits	Constant
+hi default link rexplicateEscaped		Constant
+hi default link rexplicateError			Error
+hi default link rexplicateWarning		WarningMsg
+hi default link rexplicateReportPiece		Identifier
+hi default link rexplicateReportArrow		Special
+hi default link rexplicateSampleLine		Special
 
 let b:current_syntax = 'rexplicate'
 

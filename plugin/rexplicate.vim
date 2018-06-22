@@ -9,7 +9,7 @@ function! RExplicateSetLayout() "{{{
 endfunction "}}}
 
 function! RExplicateParser() "{{{
-  let p = {}
+  let p = {} " {{{
   let p.is_magic =
         \{t -> t =~# '\m^\\[mMvV]$'}
 
@@ -62,6 +62,8 @@ function! RExplicateParser() "{{{
         \{t -> t =~# '\m^\\[1-9]$'}
   let p.starts_with_at =
         \{t -> t =~# '\m^\\@'}
+  let p.is_boundary =
+        \{t -> t ==# '\zs' || t ==# '\ze'}
   let p.has_underscore =
         \{t -> t =~# '\m^\\_.'}
   let p.is_valid_underscore =
@@ -84,7 +86,7 @@ function! RExplicateParser() "{{{
   let p.is_invalid_z =
         \{t -> t =~# '\m^\\z[^se]\?$'}
   let p.is_case =
-        \{t -> t ==? '\c'}
+        \{t -> t ==? '\c'} " }}}
 
   " p.id_map {{{
   let p.id_map = {
@@ -292,7 +294,7 @@ function! RExplicateParser() "{{{
     let r.siblings = []
     let r.children = []
     let r.help = 'pattern'
-    let r.indent = 0
+    let r.level = 0
 
     let self.root = r
     let self.parent = self.root
@@ -336,7 +338,7 @@ function! RExplicateParser() "{{{
     let n.value = self.token
     let n.magic = self.node2magic(n)
     let n.id = self.to_id(n.magic)
-    let n.indent += 1
+    let n.level += 1
     let n.line = ''
     let n.pos = self.pos - strchars(self.token)
     if !empty(n.previous)
@@ -514,7 +516,7 @@ function! RExplicateParser() "{{{
     else
       DbgRExplicate 'line -> else'
     endif
-    let indent = repeat(' ', (a:node.indent * 2))
+    let indent = repeat(' ', (a:node.level * 2))
     let line = printf('%s%s => %s', indent, a:node.value, line)
     return line
   endfunction "}}}
@@ -526,6 +528,93 @@ function! RExplicateParser() "{{{
     endif
     call add(lines, '')
     return extend(lines, map(copy(self.sequence), 'v:val.line'))
+  endfunction "}}}
+
+  function! p.match_group(offset, ...) "{{{
+    DbgRExplicate printf('match group: offset: %s, group: %s, regexp: %s', a:offset, (a:0 ? a:1 : 'all'), self.input)
+    if self.capt_groups < get(a:, 1, 0)
+      DbgRExplicate printf('match group: arg > available groups')
+      let items = []
+    elseif get(a:, 1, 0) > 9
+      DbgRExplicate printf('match group: arg > 9')
+      let items = []
+    else
+      " TODO Need to find an approach that considers \zs and \ze inside the group
+      " like in 'abc\(de\zefg\|hij\)jkl'
+      DbgRExplicate printf('match group: arg > 0')
+      let items = ['\m\C']
+      if a:offset
+        call add(items, printf('\%%>%sl', a:offset))
+      endif
+      DbgRExplicate printf('match group: capt_groups: %s', map(copy(self.sequence), 'get(v:val, ''capt_groups'', 0)'))
+      for node in self.sequence
+        DbgRExplicate printf('match group: node.magic: %s', node.magic)
+        if self.is_branch(node.id)
+          DbgRExplicate printf('match group -> is_branch:')
+          call add(items, node.magic)
+          if a:offset && node.level == -1
+            DbgRExplicate printf('match group -> is_branch -> add line nr:')
+            call add(items, printf('\%%>%sl', a:offset))
+          endif
+        elseif self.starts_capt_group(node.id)
+          DbgRExplicate printf('match group -> starts_capt_group:')
+          if a:0 && node.capt_groups == a:1
+            DbgRExplicate printf('match group -> starts_capt_group -> add \zs:')
+            call add(items, '\zs')
+          endif
+          call add(items, node.magic)
+        elseif self.ends_capt_group(node.id)
+          DbgRExplicate printf('match group -> ends_capt_group:')
+          call add(items, node.magic)
+          if a:0 && node.capt_groups == a:1
+            DbgRExplicate printf('match group -> ends_capt_group -> add \ze:')
+            call add(items, '\ze')
+          endif
+        elseif self.is_boundary(node.id)
+          DbgRExplicate printf('match group -> is_boundary:')
+          if a:0 && a:1 == 0
+            DbgRExplicate printf('match group -> is_boundary -> add node:')
+            call add(items, node.magic)
+          endif
+        elseif node.id ==# '\%l'
+          DbgRExplicate printf('match group -> is_line_nr:')
+          if a:offset
+            let linenr = matchstr(node.magic, '\d\+') + a:offset
+            call add(items, substitute(node.magic, '\d\+', linenr, ''))
+          else
+            call add(items, node.magic)
+          endif
+        elseif node.id ==# '\%^'
+          DbgRExplicate printf('match group -> is_bof:')
+          if a:offset
+            call add(items, printf('\%%%sl\_^', a:offset))
+          else
+            call add(items, node.magic)
+          endif
+        else
+          DbgRExplicate printf('match group -> else:')
+          call add(items, node.magic)
+        endif
+      endfor
+    endif
+    if len(items) - (a:offset > 0) > 1
+      let group_re = join(filter(items, '!empty(v:val)'), '')
+    else
+      let group_re = ''
+    endif
+    DbgRExplicate printf('match group: result: %s', group_re)
+    return group_re
+  endfunction "}}}
+
+  function! p.match_groups(...) "{{{
+    DbgRExplicate printf('match group: regexp: %s', self.input)
+    let offset = get(a:, 1, 0)
+    let groups = []
+    call add(groups, self.match_group(offset))
+    for group in range(0, self.capt_groups)
+      call add(groups, self.match_group(offset, group))
+    endfor
+    return filter(groups, '!empty(v:val)')
   endfunction "}}}
 
   function! p.in_optional_group() "{{{
@@ -705,7 +794,7 @@ function! RExplicateParser() "{{{
         call remove(self.nest_stack, -1)
         let self.parent = node.parent.parent
         let self.in_collection = 0
-        let node.indent -= 1
+        let node.level -= 1
         "}}}
 
       elseif self.in_collection && node.id ==# '^' "{{{
@@ -757,7 +846,7 @@ function! RExplicateParser() "{{{
         let node.previous = node.parent
         let node.siblings = node.parent.siblings
         let node.parent = node.parent.parent
-        let node.indent -= 1
+        let node.level -= 1
         let self.parent = node
         "}}}
 
@@ -786,6 +875,8 @@ function! RExplicateParser() "{{{
         elseif self.starts_capt_group(node.id)
           DbgRExplicate  printf('parse -> starts group -> capturing group')
           let self.capt_groups += 1
+          let node.capt_groups = self.capt_groups
+          DbgRExplicate  printf('parse -> starts group -> capturing group: node.capt_groups: %s', node.capt_groups)
           if self.capt_groups > 9
             let errormessage = 'more than 9 capturing groups'
             call self.add_error(node, errormessage)
@@ -799,7 +890,7 @@ function! RExplicateParser() "{{{
           DbgRExplicate  printf('parse -> ends group -> is paired')
           call remove(self.nest_stack, -1)
           let self.parent = node.parent.parent
-          let node.indent -= 1
+          let node.level -= 1
           if self.ends_opt_group(node.id)
             DbgRExplicate  printf('parse -> ends group -> is paired -> opt group')
             if empty(node.previous)
@@ -965,6 +1056,7 @@ function! RExplicateParser() "{{{
 endfunction "}}}
 
 function! RExplicateOnTextChange() "{{{
+  DbgRExplicate printf('OnTextChange:')
   let pattern = getline('1')
   if pattern ==# get(s:, 'previous_pattern', '')
     echom 'skipped'
@@ -975,19 +1067,28 @@ function! RExplicateOnTextChange() "{{{
   let curpos = getpos('.')
   call g:rexplicate.parse(pattern)
   if line('$') > 1
-    2,$d_
+    2,/^^^^^^^^^^^ .\+ ^^^^^^^^^^$/d_
   endif
   let lines = g:rexplicate.lines()
+  let lines += ['', '^^^^^^^^^^ Sample text goes under this line ^^^^^^^^^^']
   call append(1, lines)
   call setpos('.', curpos)
-  if get(s:, 'errormatchid', 0)
-        \&& !empty(filter(getmatches(), 'v:val.id == s:errormatchid'))
-    call matchdelete(s:errormatchid)
-  endif
+  for id in map(filter(getmatches(), 'v:val.group =~# ''^rexplicate'''),
+        \'v:val.id')
+    DbgRExplicate printf('OnTextChange: id: %s', id)
+    call matchdelete(id)
+  endfor
   if !empty(g:rexplicate.errors)
+    DbgRExplicate printf('OnTextChange: error:')
     let node = g:rexplicate.errors[0]
     let matchpattern = printf('\%%1l\%%%sv%s', node.pos + 1, repeat('.', strchars(node.value)))
-    let s:errormatchid = matchadd('Error', matchpattern)
+    let s:match_list = [matchadd('rexplicateError', matchpattern)]
+  else
+    DbgRExplicate printf('OnTextChange: matches:')
+    let offset = len(lines) + 1
+    let s:match_list = g:rexplicate.match_groups(offset)
+    DbgRExplicate printf('OnTextChange -> matches: match_list: %s', s:match_list)
+    call map(s:match_list, 'matchadd(''rexplicateGroupMatch'' . (v:key ? v:key -1 : ''All''), v:val, v:key + 10)')
   endif
   let time = reltimestr(reltime(time1, reltime()))
   echom printf('Time for %s in line %s is %s', pattern, line('.'), time)
@@ -999,8 +1100,9 @@ function! RExplicateDebug(msg) "{{{
   endif
 endfunction "}}}
 
-function! RExplicateSetUp(regexp) "{{{
+function! RExplicateSetUp(regexp) range "{{{
   let regexp = empty(a:regexp) ? @/ : a:regexp
+  let sample = getline(a:firstline, a:lastline)
   let bufnr = get(s:, 'bufnr', bufnr('rexplicate'))
   if bufnr >= 0
     let winnr = bufwinnr(bufnr)
@@ -1018,15 +1120,21 @@ function! RExplicateSetUp(regexp) "{{{
     else
       edit rexplicate
     endif
-    setlocal filetype=rexplicate buftype=nofile noundofile noswapfile
+  endif
+  "if !exists(s:bufnr)
     let s:bufnr = bufnr('%')
+    setlocal filetype=rexplicate buftype=nofile noundofile noswapfile foldmethod=indent foldlevel=999
     augroup RExplicate
       autocmd!
       autocmd TextChanged,TextChangedI <buffer> call RExplicateOnTextChange()
       "autocmd BufWinLeave,WinLeave <buffer> let @/ = getline(1)
     augroup END
-  endif
-  call setline(1, regexp)
+  "endif
+  let lines = [regexp, '', '^^^^^^^^^^ Sample text goes under this line ^^^^^^^^^^']
+  let lines += sample
+  setlocal nofoldenable
+  call setline(1, lines)
+  setlocal foldenable
 endfunction "}}}
 
 function! RExplicateTest(...) abort "{{{
@@ -1688,6 +1796,55 @@ function! RExplicateTest(...) abort "{{{
   let has_error = !empty(p.errors)
   call assert_true(has_error, input)
 
+  let input =    '\s\+.*'
+  let expected = '\m\C\s\+.*'
+  let output = p.parse(input).match_group(0)
+  call assert_equal(expected, output, input)
+  "let has_error = !empty(p.errors)
+  "call assert_true(has_error, input)
+
+  let input =    'abc\(def\|ghi\)jkl'
+  let expected = '\m\Cabc\(def\|ghi\)jkl'
+  let output = p.parse(input).match_group(0)
+  call assert_equal(expected, output, input)
+  "let has_error = !empty(p.errors)
+  "call assert_true(has_error, input)
+
+  let input =    'abc\(def\|ghi\)jkl'
+  let expected = '\m\Cabc\(def\|ghi\)jkl'
+  let output = p.parse(input).match_group(0, 0)
+  call assert_equal(expected, output, input)
+  "let has_error = !empty(p.errors)
+  "call assert_true(has_error, input)
+
+  let input =    'abc\(def\|ghi\)jkl'
+  let expected = '\m\Cabc\zs\(def\|ghi\)\zejkl'
+  let output = p.parse(input).match_group(0, 1)
+  call assert_equal(expected, output, input)
+  "let has_error = !empty(p.errors)
+  "call assert_true(has_error, input)
+
+  let input =    'abc\(def\|ghi\)jkl'
+  let expected = ''
+  let output = p.parse(input).match_group(0, 2)
+  call assert_equal(expected, output, input)
+  "let has_error = !empty(p.errors)
+  "call assert_true(has_error, input)
+
+  let input =    'a\zsbc\(def\|ghi\)jkl\(mno\)pq\zer'
+  let expected = '\m\Cabc\zs\(def\|ghi\)\zejkl\(mno\)pqr'
+  let output = p.parse(input).match_group(0, 1)
+  call assert_equal(expected, output, input)
+  "let has_error = !empty(p.errors)
+  "call assert_true(has_error, input)
+
+  let input =    'a\zsbc\(def\|ghi\)jkl\(mno\)pq\zer'
+  let expected = '\m\Cabc\(def\|ghi\)jkl\zs\(mno\)\zepqr'
+  let output = p.parse(input).match_group(0, 2)
+  call assert_equal(expected, output, input)
+  "let has_error = !empty(p.errors)
+  "call assert_true(has_error, input)
+
   if !empty(v:errors)
     let g:rexplicate_debug = 0
     echohl ErrorMsg
@@ -1703,8 +1860,21 @@ function! RExplicateTest(...) abort "{{{
   let g:rexplicate_debug = debug
 endfunction "}}}
 
-command! -nargs=* RExplicate call RExplicateSetUp(<q-args>)
+command! -nargs=* -range=% RExplicate <line1>,<line2>call RExplicateSetUp(<q-args>)
 command! -nargs=+ DbgRExplicate call RExplicateDebug(<args>)
+
+" TODO find nicer colors
+hi default rexplicateGroupMatchAll guibg=#000000 guifg=#dddddd ctermbg=0   ctermfg=252
+hi default rexplicateGroupMatch0   guibg=#804000 guifg=#dddddd ctermbg=94  ctermfg=252
+hi default rexplicateGroupMatch1   guibg=#800040 guifg=#dddddd ctermbg=89  ctermfg=252
+hi default rexplicateGroupMatch2   guibg=#008040 guifg=#dddddd ctermbg=29  ctermfg=252
+hi default rexplicateGroupMatch3   guibg=#400080 guifg=#dddddd ctermbg=54  ctermfg=252
+hi default rexplicateGroupMatch4   guibg=#0080a0 guifg=#dddddd ctermbg=31  ctermfg=252
+hi default rexplicateGroupMatch5   guibg=#a000a0 guifg=#dddddd ctermbg=127 ctermfg=252
+hi default rexplicateGroupMatch6   guibg=#b09000 guifg=#dddddd ctermbg=136 ctermfg=252
+hi default rexplicateGroupMatch7   guibg=#008000 guifg=#dddddd ctermbg=2   ctermfg=252
+hi default rexplicateGroupMatch8   guibg=#000080 guifg=#dddddd ctermbg=4   ctermfg=252
+hi default rexplicateGroupMatch9   guibg=#800000 guifg=#dddddd ctermbg=1   ctermfg=252
 
 let rexplicate = RExplicateParser()
 call RExplicateTest()
