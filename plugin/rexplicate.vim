@@ -289,6 +289,8 @@ function! RExplicateParser() "{{{
     let r.value = 'root'
     let r.id = 'root'
     let r.magicness = self.magicness
+    let r.capt_groups = self.capt_groups
+    let r.is_capt_group = 0
     let r.ignorecase = self.ignorecase
     let r.parent = {}
     let r.siblings = []
@@ -566,7 +568,7 @@ function! RExplicateParser() "{{{
         elseif self.ends_capt_group(node.id)
           DbgRExplicate printf('match group -> ends_capt_group:')
           call add(items, node.magic)
-          if a:0 && node.capt_groups == a:1
+          if a:0 && node.capt_groups == a:1 && node.is_capt_group
             DbgRExplicate printf('match group -> ends_capt_group -> add \ze:')
             call add(items, '\ze')
           endif
@@ -876,11 +878,15 @@ function! RExplicateParser() "{{{
           DbgRExplicate  printf('parse -> starts group -> capturing group')
           let self.capt_groups += 1
           let node.capt_groups = self.capt_groups
+          let node.is_capt_group = 1
           DbgRExplicate  printf('parse -> starts group -> capturing group: node.capt_groups: %s', node.capt_groups)
           if self.capt_groups > 9
             let errormessage = 'more than 9 capturing groups'
             call self.add_error(node, errormessage)
           endif
+        else
+          DbgRExplicate  printf('parse -> starts group -> non capturing group')
+          let node.is_capt_group = 0
         endif
         "}}}
 
