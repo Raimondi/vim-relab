@@ -1123,7 +1123,7 @@ function! RExplicateSetUp(regexp) range "{{{
   endif
   "if !exists(s:bufnr)
     let s:bufnr = bufnr('%')
-    setlocal filetype=rexplicate buftype=nofile noundofile noswapfile foldmethod=indent foldlevel=999
+    setlocal filetype=rexplicate buftype=nofile noundofile noswapfile 
     augroup RExplicate
       autocmd!
       autocmd TextChanged,TextChangedI <buffer> call RExplicateOnTextChange()
@@ -1132,9 +1132,7 @@ function! RExplicateSetUp(regexp) range "{{{
   "endif
   let lines = [regexp, '', '^^^^^^^^^^ Sample text goes under this line ^^^^^^^^^^']
   let lines += sample
-  setlocal nofoldenable
   call setline(1, lines)
-  setlocal foldenable
 endfunction "}}}
 
 function! RExplicateTest(...) abort "{{{
