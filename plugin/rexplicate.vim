@@ -553,25 +553,33 @@ function! RExplicateParser() "{{{
         DbgRExplicate printf('match group: node.magic: %s', node.magic)
         if self.is_branch(node.id)
           DbgRExplicate printf('match group -> is_branch:')
+          if a:0 && node.capt_groups == a:1 && node.is_capt_group
+            DbgRExplicate printf('match group -> branch -> add \ze:')
+            call add(items, '\ze')
+          endif
           call add(items, node.magic)
+          if a:0 && node.capt_groups == a:1
+            DbgRExplicate printf('match group -> branch -> add \zs:')
+            call add(items, '\zs')
+          endif
           if a:offset && node.level == -1
             DbgRExplicate printf('match group -> is_branch -> add line nr:')
             call add(items, printf('\%%>%sl', a:offset))
           endif
         elseif self.starts_capt_group(node.id)
           DbgRExplicate printf('match group -> starts_capt_group:')
+          call add(items, node.magic)
           if a:0 && node.capt_groups == a:1
             DbgRExplicate printf('match group -> starts_capt_group -> add \zs:')
             call add(items, '\zs')
           endif
-          call add(items, node.magic)
         elseif self.ends_capt_group(node.id)
           DbgRExplicate printf('match group -> ends_capt_group:')
-          call add(items, node.magic)
           if a:0 && node.capt_groups == a:1 && node.is_capt_group
             DbgRExplicate printf('match group -> ends_capt_group -> add \ze:')
             call add(items, '\ze')
           endif
+          call add(items, node.magic)
         elseif self.is_boundary(node.id)
           DbgRExplicate printf('match group -> is_boundary:')
           if a:0 && a:1 == 0
@@ -1850,7 +1858,7 @@ function! RExplicateTest(...) abort "{{{
   "call assert_true(has_error, input)
 
   let input =    'abc\(def\|ghi\)jkl'
-  let expected = '\m\Cabc\zs\(def\|ghi\)\zejkl'
+  let expected = '\m\Cabc\(\zsdef\ze\|\zsghi\ze\)jkl'
   let output = p.parse(input).match_group(0, 1)
   call assert_equal(expected, output, input)
   "let has_error = !empty(p.errors)
@@ -1864,14 +1872,14 @@ function! RExplicateTest(...) abort "{{{
   "call assert_true(has_error, input)
 
   let input =    'a\zsbc\(def\|ghi\)jkl\(mno\)pq\zer'
-  let expected = '\m\Cabc\zs\(def\|ghi\)\zejkl\(mno\)pqr'
+  let expected = '\m\Cabc\(\zsdef\ze\|\zsghi\ze\)jkl\(mno\)pqr'
   let output = p.parse(input).match_group(0, 1)
   call assert_equal(expected, output, input)
   "let has_error = !empty(p.errors)
   "call assert_true(has_error, input)
 
   let input =    'a\zsbc\(def\|ghi\)jkl\(mno\)pq\zer'
-  let expected = '\m\Cabc\(def\|ghi\)jkl\zs\(mno\)\zepqr'
+  let expected = '\m\Cabc\(def\|ghi\)jkl\(\zsmno\ze\)pqr'
   let output = p.parse(input).match_group(0, 2)
   call assert_equal(expected, output, input)
   "let has_error = !empty(p.errors)
