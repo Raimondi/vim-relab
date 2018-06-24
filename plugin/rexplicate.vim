@@ -1068,6 +1068,8 @@ function! RExplicateOnTextChange() "{{{
     echom 'skipped'
     return
   endif
+  let lazyredraw = &lazyredraw
+  set lazyredraw
   let s:previous_pattern = pattern
   let time1 = reltime()
   let curpos = getpos('.')
@@ -1084,18 +1086,44 @@ function! RExplicateOnTextChange() "{{{
     DbgRExplicate printf('OnTextChange: id: %s', id)
     call matchdelete(id)
   endfor
+  " TODO fix overlapping highlight, like searching with /\(p\).* on this text:
+  " probably present
+  " only the first p should be highlighted as the first capt group because .*
+  " matches the rest of the line, including the second p
+  for name in range(11)
+    execute 'silent! syn clear rexplicateGroupMatch' . (name ? name - 1 : 'All')
+  endfor
+  silent! syn clear rexplicateError
   if !empty(g:rexplicate.errors)
     DbgRExplicate printf('OnTextChange: error:')
     let node = g:rexplicate.errors[0]
-    let matchpattern = printf('\%%1l\%%%sv%s', node.pos + 1, repeat('.', strchars(node.value)))
-    let s:match_list = [matchadd('rexplicateError', matchpattern)]
+    let errorpattern = printf('\%%1l\%%%sv%s', node.pos + 1, repeat('.', strchars(node.value)))
+    execute printf('syn match rexplicateError /%s/ containedin=ALL', escape(errorpattern, '/'))
   else
     DbgRExplicate printf('OnTextChange: matches:')
     let offset = len(lines) + 1
-    let s:match_list = g:rexplicate.match_groups(offset)
-    DbgRExplicate printf('OnTextChange -> matches: match_list: %s', s:match_list)
-    call map(s:match_list, 'matchadd(''rexplicateGroupMatch'' . (v:key ? v:key -1 : ''All''), v:val, v:key + 10)')
+    let group_list = g:rexplicate.match_groups(offset)
+    DbgRExplicate printf('OnTextChange -> matches: match_list: %s', group_list)
+    for i in range(len(group_list))
+      if i == 0
+        DbgRExplicate printf('OnTextChange -> matches -> Group All: pattern: %s', group_list[i])
+        let syn_template =
+              \'syn match rexplicateGroupMatchAll /%s/ containedin=rexplicateReport keepend'
+        execute printf(syn_template, group_list[i])
+      elseif i == 1
+        DbgRExplicate printf('OnTextChange -> matches -> Group 0: pattern: %s', group_list[i])
+        let syn_template =
+              \'syn match rexplicateGroupMatch0 /%s/ containedin=rexplicateGroupMatchAll keepend'
+        execute printf(syn_template, group_list[i])
+      else
+        DbgRExplicate printf('OnTextChange -> matches -> Group %s: pattern: %s', i - 1, group_list[i])
+        let syn_template =
+              \'syn match rexplicateGroupMatch%s /%s/ containedin=rexplicateGroupMatch%s keepend'
+        execute printf(syn_template, i - 1, group_list[i], i - 2)
+      endif
+    endfor
   endif
+  let &lazyredraw = lazyredraw
   let time = reltimestr(reltime(time1, reltime()))
   echom printf('Time for %s in line %s is %s', pattern, line('.'), time)
 endfunction "}}}
