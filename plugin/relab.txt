@@ -103,6 +103,7 @@ $	/$	At end of pattern or in front of "\|", "\)" or "\n" ('magic' on): matches e
 \_U	/\U	Matches a non-uppercase character: [^A-Z] or a end-of-line (like \n).
 ~	/\~	Matches the last given substitute string.
 \%(	/\%(	Starts a non-capturing group.
+\%)	/\%(	Ends a non-capturing group.
 \(	/\(	Starts a capturing group.
 \)	/\)	Ends a capturing group.
 \1	/\1	Matches the same string that was matched by the first sub-expression in \( and \).

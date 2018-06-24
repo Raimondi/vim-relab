@@ -747,7 +747,9 @@ function! RELabParser() "{{{
             else
               let node.id = '\%]'
             endif
+          elseif node.is_capt_group
           else
+            let node.id = '\%)'
           endif
         else
           DbgRELab  printf('parse -> ends group -> is not paired')
