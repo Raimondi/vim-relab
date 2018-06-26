@@ -1,98 +1,12 @@
-function! RELabSetLayout() "{{{
-  botright vsplit RELabResult
-  let g:winresult = win_getid()
-  wincmd L
-  split RELabMatches
-  let g:winmatches = win_getid()
-  split RELab
-  let g:winlab = win_getid()
-endfunction "}}}
-
 function! RELabParser() "{{{
-  let p = {} " {{{
-  let p.is_magic =
-        \{t -> t =~# '\m^\\[mMvV]$'}
-
-  let p.is_branch =
-        \{t -> t ==# '\|' || t ==# '\&'}
-  let p.starts_group =
-        \{t -> t ==# '[' || t =~# '\m^\\%\?($' || t ==# '\%['}
-  let p.starts_capt_group =
-        \{t -> t ==# '\('}
-  let p.starts_non_capt_group =
-        \{t -> t ==# '\%('}
-  let p.starts_opt_group =
-        \{t -> t ==# '\%['}
-  let p.starts_collection =
-        \{t -> t ==# '['}
-  let p.ends_group =
-        \{t -> t ==# ']' || t ==# '\)'}
-  let p.ends_capt_group =
-        \{t -> t ==# '\)'}
-  let p.ends_non_capt_group =
-        \{t -> t ==# '\)'}
-  let p.ends_opt_group =
-        \{t -> t ==# ']'}
-  let p.ends_collection =
-        \{t -> t ==# ']'}
-
-  let p.item_or_eol =
-        \{t -> t =~# '\m^\\_[$^.iIkKfFpPsSdDxXoOwWhHaAlLuU]$'}
-  let p.incomplete_main =
-        \{t -> t =~# '\m^\\\%(@\%(\d*\%(<\?\)\)\|%[<>]\?\%(\d*\|''\)\|_\|#\|{[^}]*\|z\)\?$'}
-  let p.is_engine =
-        \{t -> t ==# '\%#='}
-  let p.is_multi =
-        \{t -> index(['*', '\?', '\=', '\+'], t) >= 0
-        \ || t=~# '\m^\\{[^}]*}$'}
-  let p.is_multi_bracket =
-        \{t -> t =~# '\m^\\{'}
-  let p.is_valid_bracket =
-        \{t -> t=~# '\m^\\{-\?\d*,\?\d*\\\?}$'}
-  let p.is_look_around =
-        \{t -> t =~# '\m^\\@\%([!=>]\|\d*<[!=]\)$'}
-  let p.is_group =
-        \{t -> index(['\(', '\%(', ')', '\|', '\&'], t) >= 0}
-  let p.is_zero_width =
-        \{t -> index(['^'])}
-  let p.is_invalid_in_optional =
-        \{t -> p.is_multi(t) || p.is_group(t)
-        \ || p.is_look_around(t) || p.starts_opt_group(t)}
-  let p.is_back_reference =
-        \{t -> t =~# '\m^\\[1-9]$'}
-  let p.starts_with_at =
-        \{t -> t =~# '\m^\\@'}
-  let p.is_boundary =
-        \{t -> t ==# '\zs' || t ==# '\ze'}
-  let p.has_underscore =
-        \{t -> t =~# '\m^\\_.'}
-  let p.is_valid_underscore =
-        \{t -> t =~# '\m^\\_[iIkKfFpPsSdDxXoOwWhHaAlLuU^$[.]$'}
-  let p.is_invalid_underscore =
-        \{t -> t =~# '\m^\\_[^iIkKfFpPsSdDxXoOwWhHaAlLuU^$[.]$'}
-  let p.is_coll_range =
-        \{t -> t =~# '\m^\%(\\[-^\]\\ebnrt]\|[^\\]\)-\%(\\[-^\]\\ebnrt]\|[^\\]\)$'}
-  let p.is_coll_range_id = {t -> t ==? 'a-b'}
-  let p.like_code_point =
-        \{t -> t =~# '\m^\\%[douUx]'}
-  let p.is_code_point =
-        \{t -> t =~# '\m^\\%\(d\d\+\|o0\?\o\{1,3}\|x\x\{1,2}\|u\x\{1,4}\|U\x\{1,8}\)$'}
-  let p.is_invalid_percent =
-        \{t -> t =~# '\m^\\%[^V#^$C]\?$'}
-  let p.is_mark =
-        \{t -> t =~# '\m^\\%[<>]\?''[a-zA-Z0-9''[\]<>]$'}
-  let p.is_lcv =
-        \{t -> t =~# '\m^\\%[<>]\?\d*[clv]'}
-  let p.is_invalid_z =
-        \{t -> t =~# '\m^\\z[^se]\?$'}
-  let p.is_case =
-        \{t -> t ==? '\c'} " }}}
+  let p = {}
 
   let p.id_map = {}
   for line in readfile(printf('%s/%s', s:plugin_dir, 'relab.txt'))
     "DbgRELab printf('id_map -> for: line: %s', line)
     let [id, help, desc] = split(line, '\t')
-    "DbgRELab printf('id_map -> for: id: %s, help: %s, desc: %s', id, help, desc)
+    "DbgRELab printf('id_map -> for: id: %s, help: %s, desc: %s',
+    "      \id, help, desc)
     if has_key(p.id_map, id)
       echoerr 'Duplicated key!'
     else
@@ -100,10 +14,210 @@ function! RELabParser() "{{{
     endif
   endfor
 
-  function! p.follows_nothing(node) "{{{
-    return empty(a:node.previous) || self.is_branch(a:node.previous.id)
-          \|| self.is_look_around(a:node.previous.id)
+  let r = {} "{{{
+
+  function! r.is_magic()
+    return self.magic =~? '\m^\\[mv]$'
+  endfunction
+
+  function! r.is_branch()
+    return self.magic ==# '\|' || self.magic ==# '\&'
+  endfunction
+
+  function! r.starts_group()
+    return self.magic ==# '[' || self.magic =~# '\m^\\%\?($'
+          \ || self.magic ==# '\%['
+  endfunction
+
+  function! r.starts_capt_group()
+    return self.magic ==# '\('
+  endfunction
+
+  function! r.starts_non_capt_group()
+    return self.magic ==# '\%('
+  endfunction
+
+  function! r.starts_opt_group()
+    return self.magic ==# '\%['
+  endfunction
+
+  function! r.starts_collection()
+    return self.magic ==# '['
+  endfunction
+
+  function! r.ends_group()
+    return self.magic ==# ']' || self.magic ==# '\)'
+  endfunction
+
+  function! r.ends_capt_group()
+    return get(self.get_left_pair(), 'magic', '') ==# '\('
+          \ && self.magic ==# '\)'
+  endfunction
+
+  function! r.ends_non_capt_group()
+    return get(self.get_left_pair(), 'magic', '') ==# '\%('
+          \ && self.magic ==# '\)'
+  endfunction
+
+  function! r.ends_opt_group()
+    return get(self.get_left_pair(), 'magic', '') ==# '\%['
+          \ && self.magic ==# ']'
+  endfunction
+
+  function! r.ends_collection()
+    return get(self.get_left_pair(), 'magic', '') ==# '['
+          \ && self.magic ==# ']'
+  endfunction
+
+  function! r.item_or_eol()
+    return self.magic =~# '\m^\\_[$^.iIkKfFpPsSdDxXoOwWhHaAlLuU]$'
+  endfunction
+
+  function! r.is_engine()
+    return self.id ==# '\%#='
+  endfunction
+
+  function! r.is_multi()
+    return self.magic =~# '\m^\%(\\[?=+]\|\*\)$\|^\\{'
+  endfunction
+
+  function! r.is_multi_bracket()
+    return self.magic =~# '\m^\\{'
+  endfunction
+
+  function! r.is_valid_bracket()
+    return self.magic =~# '\m^\\{-\?\d*,\?\d*\\\?}$'
+  endfunction
+
+  function! r.is_look_around()
+    return self.id =~# '\m^\\@\%([!=>]\|\d*<[!=]\)$'
+  endfunction
+
+  function! r.is_group()
+    return index(['\(', '\%(', '\)', '\|', '\&'], self.id) >= 0
+  endfunction
+
+  function! r.is_invalid_in_optional()
+    return self.is_multi() || self.is_group() || self.is_look_around()
+          \ || self.starts_opt_group()
+  endfunction
+
+  function! r.is_back_reference()
+    return self.id =~# '\m^\\[1-9]$'
+  endfunction
+
+  function! r.starts_with_at()
+    return self.magic =~# '\m^\\@'
+  endfunction
+
+  function! r.is_boundary()
+    return self.magic ==# '\zs' || self.magic ==# '\ze'
+  endfunction
+
+  function! r.has_underscore()
+    return self.magic =~# '\m^\\_.'
+  endfunction
+
+  function! r.is_valid_underscore()
+    return self.magic =~# '\m^\\_[iIkKfFpPsSdDxXoOwWhHaAlLuU^$[.]$'
+  endfunction
+
+  function! r.is_coll_range()
+    return self.magic =~#
+          \ '\m^\%(\\[-^\]\\ebnrt]\|[^\\]\)-\%(\\[-^\]\\ebnrt]\|[^\\]\)$'
+  endfunction
+
+  function! r.is_coll_range_id()
+    return self.id ==? 'a-b'
+  endfunction
+
+  function! r.like_code_point()
+    return self.magic =~# '\m^\\%[douUx]'
+  endfunction
+
+  function! r.is_code_point()
+    return self.magic =~#
+          \ '\m^\\%\(d\d\+\|o0\?\o\{1,3}\|x\x\{1,2}\|u\x\{1,4}\|U\x\{1,8}\)$'
+  endfunction
+
+  function! r.is_invalid_percent()
+    return self.magic =~# '\m^\\%[^V#^$C]\?$'
+  endfunction
+
+  function! r.is_mark()
+    return self.magic =~# '\m^\\%[<>]\?''[a-zA-Z0-9''[\]<>]$'
+  endfunction
+
+  function! r.is_lcv()
+    return self.magic =~# '\m^\\%[<>]\?\d*[clv]'
+  endfunction
+
+  function! r.is_invalid_z()
+    return self.magic =~# '\m^\\z[^se]\?$'
+  endfunction
+
+  function! r.is_case()
+    return self.magic ==? '\c'
+  endfunction
+
+  function! r.follows_nothing() "{{{
+    return empty(self.previous) || self.previous.is_branch()
+          \ || self.previous.is_look_around()
   endfunction "}}}
+
+  function! r.get_left_pair() "{{{
+    let pairs = {}
+    let pairs['\('] = '\)'
+    let pairs['\%('] = '\)'
+    let pairs['\%['] = ']'
+    let pairs['['] = ']'
+    let parent = self.parent
+    while !empty(parent) && parent.id !=# 'root'
+      if parent.is_branch()
+        let parent = parent.previous
+      elseif get(pairs, parent.id, '') ==# self.magic
+        return parent
+      else
+        break
+      endif
+    endwhile
+    return {}
+  endfunction "}}}
+
+  function! r.is_paired() "{{{
+    return !empty(self.get_left_pair())
+  endfunction "}}}
+
+  function! r.new(token, magicness, ignorecase, magic, pos, id) "{{{
+    let n = copy(self)
+    let n.is_error = 0
+    let n.error = []
+    let n.magicness = a:magicness
+    let n.ignorecase = a:ignorecase
+    let n.parent = self
+    let n.siblings = self.children
+    let n.children = []
+    let n.previous = get(self.children, -1, {})
+    let n.next = {}
+    let n.value = a:token
+    let n.magic = a:magic
+    let n.id = a:id
+    let n.level += 1
+    let n.line = ''
+    let n.pos = a:pos - strchars(a:token)
+    if !empty(n.previous)
+      let n.previous.next = n
+    endif
+    call add(self.children, n)
+    DbgRELab  printf('new: node: %s', filter(copy(n), 'type(v:val) <= 1'))
+    return n
+  endfunction "}}}
+
+  let r.value = 'root'
+  let r.magic = 'root'
+  let r.id = 'root'
+  let r.help = 'pattern'
+  let p.root = r "}}}
 
   function! p.init(...) "{{{
     let self.magicness = 'm'
@@ -119,117 +233,97 @@ function! RELabParser() "{{{
     let self.errors = []
     let self.sequence = []
 
-    let r = {}
-    let r.value = 'root'
-    let r.id = 'root'
-    let r.magicness = self.magicness
-    let r.capt_groups = self.capt_groups
-    let r.is_capt_group = 0
-    let r.ignorecase = self.ignorecase
-    let r.parent = {}
-    let r.siblings = []
-    let r.children = []
-    let r.help = 'pattern'
-    let r.level = 0
+    let self.root.magicness = self.magicness
+    let self.root.capt_groups = self.capt_groups
+    let self.root.is_capt_group = 0
+    let self.root.ignorecase = self.ignorecase
+    let self.root.parent = {}
+    let self.root.siblings = []
+    let self.root.children = []
+    let self.root.level = 0
 
-    let self.root = r
     let self.parent = self.root
     return self
   endfunction "}}}
 
-  function! p.node2magic(node) "{{{
-    if a:node.magicness ==# 'M'
-      if a:node.value =~# '\m^\\[.*~[]$'
-        return a:node.value[1:]
-      elseif a:node.value =~# '\m^[.*~[]$'
-        return '\' . a:node.value
+  function! p.magic() "{{{
+    if self.magicness ==# 'M'
+      if self.token =~# '\m^\\[.*~[]$'
+        return self.token[1:]
+      elseif self.token =~# '\m^[.*~[]$'
+        return '\' . self.token
       endif
-    elseif a:node.magicness ==# 'v'
-      if a:node.value =~# '\m^[+?{()@%<>=]'
-        return '\' . a:node.value
-      elseif a:node.value =~# '\m^\\[+?{()@%<>=]'
-        return a:node.value[1:]
+    elseif self.magicness ==# 'v'
+      if self.token =~# '\m^[+?{()@%<>=]'
+        return '\' . self.token
+      elseif self.token =~# '\m^\\[+?{()@%<>=]'
+        return self.token[1:]
       endif
-    elseif a:node.magicness ==# 'V'
-      if a:node.value =~# '\m^\\[[.*~^$]$'
-        return a:node.value[1:]
-      elseif a:node.value =~# '\m^[[.*~^$]$'
-        return '\' . a:node.value
+    elseif self.magicness ==# 'V'
+      if self.token =~# '\m^\\[[.*~^$]$'
+        return self.token[1:]
+      elseif self.token =~# '\m^[[.*~^$]$'
+        return '\' . self.token
       endif
     endif
-    return a:node.value
+    return self.token
   endfunction "}}}
 
-  function! p.new_child() "{{{
-    let n = copy(self.parent)
-    let n.is_error = 0
-    let n.error = []
-    let n.magicness = self.magicness
-    let n.ignorecase = self.ignorecase
-    let n.parent = self.parent
-    let n.siblings = self.parent.children
-    let n.children = []
-    let n.previous = get(self.parent.children, -1, {})
-    let n.next = {}
-    let n.value = self.token
-    let n.magic = self.node2magic(n)
-    let n.id = self.to_id(n.magic)
-    let n.level += 1
-    let n.line = ''
-    let n.pos = self.pos - strchars(self.token)
-    if !empty(n.previous)
-      let n.previous.next = n
-    endif
-    call add(self.parent.children, n)
-    call add(self.sequence, n)
-    return n
-  endfunction "}}}
-
-  function! p.to_id(text) "{{{
-    DbgRELab printf('to_id: %s', a:text)
-    let text = self.node2magic({'value': a:text, 'magicness': self.magicness})
+  function! p.id() "{{{
+    let magic_token = self.magic()
+    DbgRELab printf('to id: self.token: %s, magic_token: %s', self.token,
+          \ magic_token)
     if self.in_collection
-        DbgRELab printf('to_id -> collection')
-      if a:text =~# '\m^\\[doxuU]'
-        DbgRELab printf('to_id -> collection -> code point')
+        DbgRELab printf('to id -> collection')
+      if self.token =~# '\m^\\[doxuU]'
+        DbgRELab printf('to id -> collection -> code point')
         " /[\x]
-        return substitute(a:text, '\m^\(\\.\).\+', '[\1', '')
-      elseif self.is_coll_range(a:text)
-        DbgRELab printf('to_id -> collection -> range')
+        return substitute(self.token, '\m^\(\\.\).\+', '[\1', '')
+      elseif self.token =~#
+            \ '\m^\%(\\[-^\]\\ebnrt]\|[^\\]\)-\%(\\[-^\]\\ebnrt]\|[^\\]\)$'
+        DbgRELab printf('to id -> collection -> range')
         " /[a-z]
         return self.ignorecase ? 'a-b' : 'A-B'
-      elseif a:text =~# '\m^\[[.=].[.=]\]$'
-        DbgRELab printf('to_id -> collection -> collation/equivalence')
+      elseif self.token =~# '\m^\[[.=].[.=]\]$'
+        DbgRELab printf('to id -> collection -> collation/equivalence')
         " /[[.a.][=a=]]
-        return substitute(a:text, '\m^\(\[[.=]\).[.=]\]$', '[\1\1]', '')
+        return substitute(self.token, '\m^\(\[[.=]\).[.=]\]$', '[\1\1]', '')
       endif
-    elseif text =~# '\m^\\%[<>]\?\d\+[lvc]$'
-      DbgRELab printf('to_id -> lcv')
+    elseif magic_token =~# '\m^\\%[<>]\?\d\+[lvc]$'
+      DbgRELab printf('to id -> lcv')
       " /\%23l
-      return substitute(a:text, '\m\d\+', '', '')
-    elseif text =~# '\m^\\%[<>]\?''.$'
-      DbgRELab printf('to_id -> mark')
+      return substitute(self.token, '\m\d\+', '', '')
+    elseif magic_token =~# '\m^\\%[<>]\?''.$'
+      DbgRELab printf('to id -> mark')
       " /\%'m
-      return substitute(a:text, '.$', 'm', '')
-    elseif text =~# '\m^\\{'
+      return substitute(self.token, '.$', 'm', '')
+    elseif magic_token =~# '\m^\\{'
+        DbgRELab printf('to id -> multi curly')
       " /.\{}
       let id = '\{'
-      let id .= text =~# '\m^\\{-' ? '-' : ''
-      let id .= text =~# '\m^\\{-\?\d' ? 'n' : ''
-      let id .= text =~# '\m^\\{-\?\d*,' ? ',' : ''
-      let id .= text =~# '\m^\\{-\?\d*,\d' ? 'm' : ''
+      let id .= magic_token =~# '\m^\\{-' ? '-' : ''
+      let id .= magic_token =~# '\m^\\{-\?\d' ? 'n' : ''
+      let id .= magic_token =~# '\m^\\{-\?\d*,' ? ',' : ''
+      let id .= magic_token =~# '\m^\\{-\?\d*,\d' ? 'm' : ''
       let id .= '}'
       return id
-    elseif text =~# '\m^\\%[doxuU]\d\+$'
+    elseif magic_token =~# '\m^\\%[doxuU]\d\+$'
+        DbgRELab printf('to id -> code point')
       " /\%d123
-      return matchstr(a:text, '\m\C^\\%[doxuU]')
-    elseif a:text =~# '\m^\\%#=.\?'
+      return matchstr(self.token, '\m\C^\\%[doxuU]')
+    elseif self.token =~# '\m^\\%#=.\?'
+        DbgRELab printf('to id -> engine')
       " regexp engine
       return '\%#='
-    elseif self.is_look_around(text)
-      return substitute(a:text, '\d\+', '123', '')
+    elseif magic_token =~# '\m^\\@\%([!=>]\|\d*<[!=]\)$'
+        DbgRELab printf('to id -> lookaround')
+      return substitute(self.token, '\d\+', '123', '')
+    elseif magic_token =~# '\m^\\[[.^$~*]$'
+        DbgRELab printf('to id -> literal')
+      return magic_token
     endif
-    return a:text
+    DbgRELab printf('to id -> else')
+    return self.token
   endfunction "}}}
 
   function! p.help_tag(node) "{{{
@@ -240,7 +334,7 @@ function! RELabParser() "{{{
     let id = a:node.id
     DbgRELab printf('line: %s', id)
     let line = get(self.id_map, id,
-          \{'line': 'ERROR: contact this plugin''s author'}).line
+          \ {'line': 'ERROR: contact this plugin''s author'}).line
     DbgRELab printf('line: %s', line)
     if id ==? 'x'
       DbgRELab 'line -> literal'
@@ -279,25 +373,25 @@ function! RELabParser() "{{{
       elseif tolower(char) ==# toupper(char)
         DbgRELab 'line -> literal -> no case'
         let line = get(self.id_map, 'X',
-              \{'line': 'ERROR: contact this plugin''s author'}).line
+              \ {'line': 'ERROR: contact this plugin''s author'}).line
         let line = printf(line, char, code)
       else
         DbgRELab 'line -> literal -> ignore case'
         let line = printf(line, tolower(char), char2nr(tolower(char)),
-              \toupper(char), char2nr(toupper(char)))
+              \ toupper(char), char2nr(toupper(char)))
       endif
     elseif id ==# 'A-B'
       DbgRELab 'line -> range match case'
-      let line = printf(line, a:node.first, char2nr(a:node.first), a:node.second,
-            \char2nr(a:node.second))
+      let line = printf(line, a:node.first, char2nr(a:node.first),
+            \ a:node.second, char2nr(a:node.second))
     elseif id ==# 'a-b'
       DbgRELab 'line -> range ignore case'
       let line = printf(line,
-            \tolower(a:node.first), char2nr(tolower(a:node.first)),
-            \tolower(a:node.second), char2nr(tolower(a:node.second)),
-            \toupper(a:node.first), char2nr(toupper(a:node.first)),
-            \toupper(a:node.second), char2nr(toupper(a:node.second))
-            \)
+            \ tolower(a:node.first), char2nr(tolower(a:node.first)),
+            \ tolower(a:node.second), char2nr(tolower(a:node.second)),
+            \ toupper(a:node.first), char2nr(toupper(a:node.first)),
+            \ toupper(a:node.second), char2nr(toupper(a:node.second))
+            \ )
     elseif id =~# '^\m\\{'
       DbgRELab 'line -> brackets'
       if empty(a:node.min)
@@ -324,10 +418,11 @@ function! RELabParser() "{{{
       let line = printf(line, matchstr(a:node.magic, '\d\+'))
     elseif id =~# '\m^\%(\[\\\|\\%\)[doxuU]'
       DbgRELab 'line -> code point'
-      let code_map = {'d': '%s', 'o': '0%s', 'x': '0x%s', 'u': '0x%s', 'U': '0x%s'}
+      let code_map = {'d': '%s', 'o': '0%s', 'x': '0x%s', 'u': '0x%s',
+            \ 'U': '0x%s'}
       let key = matchstr(id, '\m^\%(\[\\\|\\%\)\zs.')
       DbgRELab printf('line -> code point: magicness: %s, key: %s',
-            \a:node.magic, key)
+            \ a:node.magic, key)
       let number = matchstr(a:node.magic, '\m^\\%\?.0\?\zs.\+')
       DbgRELab printf('line -> code point: number: %s', number)
       let code = printf(code_map[key], number)
@@ -341,7 +436,7 @@ function! RELabParser() "{{{
       if a:node.ignorecase && char !=# char2
         DbgRELab 'line -> code point -> ignore case'
         let line = get(self.id_map, id . 'i',
-              \{'line': 'ERROR: contact this plugin''s author'}).line
+              \ {'line': 'ERROR: contact this plugin''s author'}).line
         let line = printf(line, char, code, char2)
       else
         DbgRELab 'line -> code point -> match case'
@@ -367,7 +462,8 @@ function! RELabParser() "{{{
   endfunction "}}}
 
   function! p.match_group(offset, ...) "{{{
-    DbgRELab printf('match group: offset: %s, group: %s, regexp: %s', a:offset, (a:0 ? a:1 : 'all'), self.input)
+    DbgRELab printf('match group: offset: %s, group: %s, regexp: %s',
+          \ a:offset, (a:0 ? a:1 : 'all'), self.input)
     if self.capt_groups < get(a:, 1, 0)
       DbgRELab printf('match group: arg > available groups')
       let items = []
@@ -375,17 +471,18 @@ function! RELabParser() "{{{
       DbgRELab printf('match group: arg > 9')
       let items = []
     else
-      " TODO Need to find an approach that considers \zs and \ze inside the group
+      " TODO Need to considers \zs and \ze inside the group
       " like in 'abc\(de\zefg\|hij\)jkl'
       DbgRELab printf('match group: arg > 0')
       let items = ['\m\C']
       if a:offset
         call add(items, printf('\%%>%sl', a:offset))
       endif
-      DbgRELab printf('match group: capt_groups: %s', map(copy(self.sequence), 'get(v:val, ''capt_groups'', 0)'))
+      DbgRELab printf('match group: capt_groups: %s', map(copy(self.sequence),
+            \ 'get(v:val, ''capt_groups'', 0)'))
       for node in self.sequence
         DbgRELab printf('match group: node.magic: %s', node.magic)
-        if self.is_branch(node.id)
+        if node.is_branch()
           DbgRELab printf('match group -> is_branch:')
           if a:0 && node.capt_groups == a:1 && node.is_capt_group
             DbgRELab printf('match group -> branch -> add \ze:')
@@ -400,21 +497,21 @@ function! RELabParser() "{{{
             DbgRELab printf('match group -> is_branch -> add line nr:')
             call add(items, printf('\%%>%sl', a:offset))
           endif
-        elseif self.starts_capt_group(node.id)
+        elseif node.starts_capt_group()
           DbgRELab printf('match group -> starts_capt_group:')
           call add(items, node.magic)
           if a:0 && node.capt_groups == a:1
             DbgRELab printf('match group -> starts_capt_group -> add \zs:')
             call add(items, '\zs')
           endif
-        elseif self.ends_capt_group(node.id)
+        elseif node.ends_capt_group()
           DbgRELab printf('match group -> ends_capt_group:')
           if a:0 && node.capt_groups == a:1 && node.is_capt_group
             DbgRELab printf('match group -> ends_capt_group -> add \ze:')
             call add(items, '\ze')
           endif
           call add(items, node.magic)
-        elseif self.is_boundary(node.id)
+        elseif node.is_boundary()
           DbgRELab printf('match group -> is_boundary:')
           if a:0 && a:1 == 0
             DbgRELab printf('match group -> is_boundary -> add node:')
@@ -428,6 +525,9 @@ function! RELabParser() "{{{
           else
             call add(items, node.magic)
           endif
+        elseif node.value ==# '\'
+          DbgRELab printf('match group -> single backspace:')
+          call add(items, '\\')
         elseif node.id ==# '\%^'
           DbgRELab printf('match group -> is_bof:')
           if a:offset
@@ -465,16 +565,6 @@ function! RELabParser() "{{{
     return get(get(self.nest_stack, -1, {}), 'id', '') ==# '\%['
   endfunction "}}}
 
-  function! p.is_paired(right) "{{{
-    let left = get(self.nest_stack, -1, {'id': ''}).id
-    if a:right ==# '\)'
-      return left ==# '\(' || left ==# '\%('
-    elseif a:right ==# ']'
-      return left ==# '\%[' || left ==# '['
-    endif
-    return 0
-  endfunction "}}}
-
   function! p.map(key) "{{{
     return map(copy(self.sequence), 'get(v:val, a:key, '''')')
   endfunction "}}}
@@ -504,66 +594,67 @@ function! RELabParser() "{{{
     let a:node.is_error = 1
     let error = []
     let arrow = printf('%s%s',
-          \repeat('-', a:node.pos), repeat('^', strchars(a:node.value)))
+          \ repeat('-', a:node.pos), repeat('^', strchars(a:node.value)))
     call add(error, arrow)
     call add(error, printf('Error: %s', (a:0 ? a:1 : a:node.value . ':')))
     let a:node.error = error
     call add(self.errors, a:node)
   endfunction "}}}
 
-  function! p.incomplete_in_collection() "{{{
+  function! p.incomplete_in_coll() "{{{
     let next = self.token . strcharpart(self.input, self.pos)
     let ahead = strcharpart(self.input, self.pos, 1)
     if empty(self.parent.children) && self.token ==# '^'
-      DbgRELab printf('is_incomplete_in_collection -> negate: %s', next)
+      DbgRELab printf('incomplete_in_coll -> negate: %s', next)
       return 0
     elseif self.token =~# '\m^\%(\\[\\ebnrt]\|[^\\]\)-\%(\\[\\ebnrt]\|[^\\]\)$'
-      DbgRELab printf('is_incomplete_in_collection -> range done: %s', next)
+      DbgRELab printf('incomplete_in_coll -> range done: %s', next)
       return 0
     elseif next =~# '\m^\%(\\[\\enbrt]\|[^\\]\)-\%(\\[\\ebnrt]\|[^\\]\)'
-      DbgRELab printf('is_incomplete_in_collection -> range coming: %s', next)
+      DbgRELab printf('incomplete_in_coll -> range coming: %s', next)
       return 1
     elseif self.token =~# '\m^\\[-\\ebnrt\]^]$'
-      DbgRELab printf('is_incomplete_in_collection -> escaped done: %s', next)
+      DbgRELab printf('incomplete_in_coll -> escaped done: %s', next)
       return 0
     elseif self.token ==# '\' && ahead =~# '\m^[-\\ebnrtdoxuU\]^]$'
-      DbgRELab printf('is_incomplete_in_collection -> escaped done: %s', next)
+      DbgRELab printf('incomplete_in_coll -> escaped done: %s', next)
       return 1
     elseif self.token ==# '\'
-      DbgRELab printf('is_incomplete_in_collection -> escaped coming: %s', next)
+      DbgRELab
+            \ printf('incomplete_in_coll -> escaped coming: %s', next)
       return 0
     elseif self.token =~# '\m^\[\([.=]\).\1\]$'
-      DbgRELab printf('is_incomplete_in_collection -> equivalence done: %s', next)
+      DbgRELab printf('incomplete_in_coll -> equivalence done: %s', next)
       return 0
     elseif next =~# '\m^\[\([.=]\).\1\]'
-      DbgRELab printf('is_incomplete_in_collection -> equivalence coming: %s', next)
+      DbgRELab printf('incomplete_in_coll -> equivalence coming: %s', next)
       return 1
     elseif self.token =~# '\m^\[:\a\+:\]$'
-      DbgRELab printf('is_incomplete_in_collection -> collation done: %s', next)
+      DbgRELab printf('incomplete_in_coll -> collation done: %s', next)
       return 0
     elseif next =~# '\m^\[:\a\+:\]'
-      DbgRELab printf('is_incomplete_in_collection -> collation coming: %s', next)
+      DbgRELab printf('incomplete_in_coll -> collation coming: %s', next)
       return 1
     endif
     let next = self.token . ahead
     if next =~# '\m^\\d\d*$'
-      DbgRELab printf('is_incomplete_in_collection -> dec: %s', next)
+      DbgRELab printf('incomplete_in_coll -> dec: %s', next)
       return 1
     elseif next =~# '\m^\\o0\?\o\{,3}$'
-          \&& printf('0%s', matchstr(next, '0\?\zs\o\+')) <= 0377
-      DbgRELab printf('is_incomplete_in_collection -> oct: %s', next)
+          \ && printf('0%s', matchstr(next, '0\?\zs\o\+')) <= 0377
+      DbgRELab printf('incomplete_in_coll -> oct: %s', next)
       return 1
     elseif next =~# '\m^\\x\x\{,2}$'
-      DbgRELab printf('is_incomplete_in_collection -> hex2: %s', next)
+      DbgRELab printf('incomplete_in_coll -> hex2: %s', next)
       return 1
     elseif next =~# '\m^\\u\x\{,4}$'
-      DbgRELab printf('is_incomplete_in_collection -> hex4: %s', next)
+      DbgRELab printf('incomplete_in_coll -> hex4: %s', next)
       return 1
     elseif next =~# '\m^\\U\x\{,8}$'
-      DbgRELab printf('is_incomplete_in_collection -> hex8: %s', next)
+      DbgRELab printf('incomplete_in_coll -> hex8: %s', next)
       return 1
     elseif next =~# '\m^\\[duUx].$'
-      DbgRELab printf('is_incomplete_in_collection -> code point: %s', next)
+      DbgRELab printf('incomplete_in_coll -> code point: %s', next)
       return 1
     else
       return 0
@@ -573,10 +664,12 @@ function! RELabParser() "{{{
   function! p.is_incomplete() "{{{
     DbgRELab printf('is_incomplete')
     if self.in_collection
-      return self.incomplete_in_collection()
+      return self.incomplete_in_coll()
     endif
-    let token = self.node2magic({'value': self.token, 'magicness': self.magicness})
-    if self.incomplete_main(token)
+    let token = self.magic()
+    if token =~# '\m^\\\%(@\%(\d*\%(<\?\)\)\)$'
+          \ || token =~# '\m^\\\%(%[<>]\?\%(\d*\|''\)$\)'
+          \ || token =~# '\m^\\\%(_\|#\|{[^}]*\|z\)\?$'
       DbgRELab printf('is_incomplete -> main: %s', token)
       return 1
     endif
@@ -586,7 +679,7 @@ function! RELabParser() "{{{
       DbgRELab printf('is_incomplete -> dec: %s', next)
       return 1
     elseif next =~# '\m^\\%o0\?\o\{,3}$'
-          \&& printf('0%s', matchstr(next, '0\?\zs\o\+')) <= 0377
+          \ && printf('0%s', matchstr(next, '0\?\zs\o\+')) <= 0377
       DbgRELab printf('is_incomplete -> oct: %s', next)
       return 1
     elseif next =~# '\m^\\%x\x\{,2}$'
@@ -630,10 +723,19 @@ function! RELabParser() "{{{
     DbgRELab printf('parse: %s', a:input)
     call self.init(a:input)
     while self.next()
-      let node = self.new_child()
-      DbgRELab printf('parse -> token: %s, id: %s', node.value, node.id)
+      let token = self.token
+      let magicness = self.magicness
+      let ignorecase = self.ignorecase
+      let magic = self.magic()
+      let pos = self.pos
+      let id = self.id()
+      let node = self.parent.new(token, magicness, ignorecase, magic, pos, id)
+      call add(self.sequence, node)
+      DbgRELab printf('parse -> token: %s, magicness: %s, ignorecase: %s,
+            \ magic: %s, pos: %s, id: %s', token, magicness, ignorecase,
+            \ magic, pos, id)
 
-      if self.in_collection && self.ends_collection(node.id) "{{{
+      if self.in_collection && node.ends_collection() "{{{
         DbgRELab  'parse -> ends collection'
         call remove(self.nest_stack, -1)
         let self.parent = node.parent.parent
@@ -652,7 +754,7 @@ function! RELabParser() "{{{
         endif
         "}}}
 
-      elseif self.in_collection && self.is_coll_range_id(node.id) "{{{
+      elseif self.in_collection && node.is_coll_range_id() "{{{
         DbgRELab printf('parse -> collection -> range')
         if node.value[0] ==# '\'
           let node.first = strcharpart(node.value, 0, 2)
@@ -662,9 +764,10 @@ function! RELabParser() "{{{
           let node.second = strcharpart(node.value, 2)
         endif
         let dict = {'\e': "\e", '\b': "\b", '\n': "\n", '\r': "\r", '\t': "\t",
-              \'\\': '\', '\]': ']', '\^': '^', '\-': '-'}
+              \ '\\': '\', '\]': ']', '\^': '^', '\-': '-'}
         let node.first = get(dict, node.first, node.first)
-        DbgRELab printf('parse -> collection -> range: first: %s, second: %s', node.first, node.second)
+        DbgRELab printf('parse -> collection -> range: first: %s, second: %s',
+              \ node.first, node.second)
         let node.second = get(dict, node.second, node.second)
         if node.first ># node.second
           let errormessage = 'reverse range in character class'
@@ -672,16 +775,16 @@ function! RELabParser() "{{{
         endif
         "}}}
 
-      elseif self.is_engine(node.id) "{{{
+      elseif node.is_engine() "{{{
         DbgRELab  printf('parse -> engine')
         if matchstr(node.value, '^\m\\%#=\zs.\?') !~# '\m^[0-2]$'
           let errormessage =
-                \'\%#= can only be followed by 0, 1, or 2'
+                \ '\%#= can only be followed by 0, 1, or 2'
           call self.add_error(node, errormessage)
         endif
         "}}}
 
-      elseif self.is_branch(node.id) "{{{
+      elseif node.is_branch() "{{{
         DbgRELab  printf('parse -> is_branch')
         " Move node one level up in the hierarchy
         call remove(node.siblings, -1)
@@ -694,18 +797,18 @@ function! RELabParser() "{{{
         let self.parent = node
         "}}}
 
-      elseif self.in_optional_group() && self.is_invalid_in_optional(node.id) "{{{
+      elseif self.in_optional_group() && node.is_invalid_in_optional() "{{{
         DbgRELab  printf('parse -> invalid in optional')
         let errormessage =
-              \printf('%s is not valid inside \%%[]', node.value)
+              \ printf('%s is not valid inside \%%[]', node.value)
         call self.add_error(node, errormessage)
         "}}}
 
-      elseif self.starts_group(node.id) "{{{
+      elseif node.starts_group() "{{{
         DbgRELab  printf('parse -> starts group')
         call add(self.nest_stack, node)
         let self.parent = node
-        if self.starts_collection(node.id)
+        if node.starts_collection()
           DbgRELab  printf('parse -> starts group -> collection')
           if self.collection_ends()
             " The collection is terminated by a ']', so treat this as the
@@ -716,12 +819,13 @@ function! RELabParser() "{{{
             call remove(self.nest_stack, -1)
             let node.id = node.ignorecase ? 'x' : 'X'
           endif
-        elseif self.starts_capt_group(node.id)
-          DbgRELab  printf('parse -> starts group -> capturing group')
+        elseif node.starts_capt_group()
+          DbgRELab  printf('parse -> starts group -> capt group')
           let self.capt_groups += 1
           let node.capt_groups = self.capt_groups
           let node.is_capt_group = 1
-          DbgRELab  printf('parse -> starts group -> capturing group: node.capt_groups: %s', node.capt_groups)
+          DbgRELab  printf('parse -> starts group -> capt group: node.capt_groups: %s',
+                \ node.capt_groups)
           if self.capt_groups > 9
             let errormessage = 'more than 9 capturing groups'
             call self.add_error(node, errormessage)
@@ -732,17 +836,18 @@ function! RELabParser() "{{{
         endif
         "}}}
 
-      elseif self.ends_group(node.id) "{{{
+      elseif node.ends_group() "{{{
         DbgRELab  printf('parse -> ends group')
-        if self.is_paired(node.id)
+        if node.is_paired()
           DbgRELab  printf('parse -> ends group -> is paired')
           call remove(self.nest_stack, -1)
           let self.parent = node.parent.parent
           let node.level -= 1
-          if self.ends_opt_group(node.id)
+          if node.ends_opt_group()
             DbgRELab  printf('parse -> ends group -> is paired -> opt group')
             if empty(node.previous)
-              let errormessage = printf('empty %s%s', node.parent.value, node.value)
+              let errormessage = printf('empty %s%s', node.parent.value,
+                    \ node.value)
               call self.add_error(node, errormessage)
             else
               let node.id = '\%]'
@@ -767,11 +872,11 @@ function! RELabParser() "{{{
         endif
         "}}}
 
-      elseif self.has_underscore(node.id) "{{{
+      elseif node.has_underscore() "{{{
         DbgRELab  printf('parse -> has underscore')
-        if self.is_valid_underscore(node.id)
+        if node.is_valid_underscore()
           DbgRELab  printf('parse -> has underscore -> valid')
-        elseif self.is_invalid_underscore(node.id)
+        elseif !node.is_valid_underscore()
           DbgRELab  printf('parse -> has underscore -> invalid')
           let char = strcharpart(node.magic, 2)
           let errormessage = 'invalid use of \_'
@@ -779,34 +884,34 @@ function! RELabParser() "{{{
         endif
         "}}}
 
-      elseif self.is_multi(node.id) "{{{
+      elseif node.is_multi() "{{{
         DbgRELab  printf('parse -> multi')
-        if !empty(node.previous) && self.is_multi(node.previous.id)
+        if !empty(node.previous) && node.previous.is_multi()
           DbgRELab  printf('parse -> multi -> follows multi')
           let errormessage =
-                \printf('%s can not follow a multi', node.value)
+                \ printf('%s can not follow a multi', node.value)
           call self.add_error(node, errormessage)
-        elseif self.follows_nothing(node)
+        elseif node.follows_nothing()
           DbgRELab  printf('parse -> multi -> follows nothing')
           let errormessage =
-                \printf('%s follows nothing', node.value)
+                \ printf('%s follows nothing', node.value)
           call self.add_error(node, errormessage)
-        elseif self.is_multi_bracket(node.id)
+        elseif node.is_multi_bracket()
           DbgRELab  printf('parse -> multi -> brackets')
-          if self.is_valid_bracket(node.value)
+          if node.is_valid_bracket()
             DbgRELab  printf('parse -> multi -> brackets -> valid')
             let node.min = matchstr(node.value, '\m\\{-\?\zs\d*')
             let node.max = matchstr(node.value, '\m\\{-\?\d*,\zs\d*')
           else
             DbgRELab  printf('parse -> multi -> brackets -> invalid')
             let errormessage =
-                  \printf('syntax error in %s', node.value)
+                  \ printf('syntax error in %s', node.value)
             call self.add_error(node, errormessage)
           endif
         endif
         "}}}
 
-      elseif self.is_back_reference(node.id) "{{{
+      elseif node.is_back_reference() "{{{
         DbgRELab  printf('parse -> back reference')
         if strcharpart(node.value, 1, 1) > self.capt_groups
           DbgRELab  printf('parse -> back reference -> illegal')
@@ -815,70 +920,70 @@ function! RELabParser() "{{{
         endif
         "}}}
 
-      elseif self.is_look_around(node.id) "{{{
+      elseif node.is_look_around() "{{{
         DbgRELab  printf('parse -> look around')
-        if self.follows_nothing(node)
+        if node.follows_nothing()
           DbgRELab  printf('parse -> look around -> illegal')
           let errormessage = printf('%s follows nothing', node.value)
           call self.add_error(node, errormessage)
         endif
         "}}}
 
-      elseif self.starts_with_at(node.id) "{{{
+      elseif node.starts_with_at() "{{{
         DbgRELab  printf('parse -> starts with @')
         if node.id !=# '\@>'
           let errormessage = printf('invalid character after %s',
-                \(node.magicness ==# 'v' ? '@' : '\@'))
+                \ (node.magicness ==# 'v' ? '@' : '\@'))
           call self.add_error(node, errormessage)
         endif
         "}}}
 
-      elseif self.like_code_point(node.id) "{{{
+      elseif node.like_code_point() "{{{
         DbgRELab  printf('parse -> like code point: magicness: %s', node.magic)
-        if self.is_code_point(node.magic)
+        if node.is_code_point()
           DbgRELab  printf('parse -> like code point -> hexadecimal 8')
         else
           DbgRELab  printf('parse -> like code point -> invalid code point')
           let errormessage = printf('invalid character after %s',
-                \matchstr(node.value, '\\\?%[duUx]'))
+                \ matchstr(node.value, '\\\?%[duUx]'))
           call self.add_error(node, errormessage)
         endif
         "}}}
 
-      elseif self.is_mark(node.id) "{{{
+      elseif node.is_mark() "{{{
         DbgRELab  printf('parse -> mark')
         "}}}
 
-      elseif self.is_lcv(node.id) "{{{
+      elseif node.is_lcv() "{{{
         DbgRELab  printf('parse -> lcv')
         "}}}
 
-      elseif self.is_invalid_percent(node.id) "{{{
+      elseif node.is_invalid_percent() "{{{
         DbgRELab  printf('parse -> invalid percent')
         let errormessage = printf('invalid character after %s',
-              \matchstr(node.value, '\\\?%'))
+              \ matchstr(node.value, '\\\?%'))
         call self.add_error(node, errormessage)
         "}}}
 
-      elseif self.is_invalid_z(node.id) "{{{
+      elseif node.is_invalid_z() "{{{
         DbgRELab  printf('parse -> invalid percent')
         let errormessage = printf('invalid character after %s',
-              \matchstr(node.value, '\\\?z'))
+              \ matchstr(node.value, '\\\?z'))
         call self.add_error(node, errormessage)
         "}}}
 
-      elseif self.is_case(node.id) "{{{
+      elseif node.is_case() "{{{
         let self.ignorecase = node.id ==# '\c'
         DbgRELab  printf('parse -> case: %s', self.ignorecase)
         "}}}
 
-      elseif self.is_magic(node.id) "{{{
+      elseif node.is_magic() "{{{
         DbgRELab  printf('parse -> magicness')
         let self.magicness = node.id[1]
         "}}}
 
       elseif node.value !=? 'x' && has_key(self.id_map, node.id) "{{{
-        DbgRELab  printf('parse -> has_key')
+        DbgRELab  printf('parse -> has_key: node.id: %s', node.id)
         "}}}
 
       else
@@ -891,7 +996,7 @@ function! RELabParser() "{{{
       DbgRELab  printf('parse -> non-empty nest stack')
       for node in self.nest_stack
         DbgRELab  printf('parse -> non-empty nest stack -> loop: %s', node.value)
-        if self.starts_opt_group(node.id)
+        if node.starts_opt_group()
           let errormessage = printf('missing ] after %s', node.value)
         else
           let errormessage = printf('unmatched %s', node.value)
@@ -926,7 +1031,7 @@ function! RELabOnTextChange() "{{{
   call append(1, lines)
   call setpos('.', curpos)
   for id in map(filter(getmatches(), 'v:val.group =~# ''^relab'''),
-        \'v:val.id')
+        \ 'v:val.id')
     DbgRELab printf('OnTextChange: id: %s', id)
     call matchdelete(id)
   endfor
@@ -941,8 +1046,10 @@ function! RELabOnTextChange() "{{{
   if !empty(g:relab.errors)
     DbgRELab printf('OnTextChange: error:')
     let node = g:relab.errors[0]
-    let errorpattern = printf('\%%1l\%%%sv%s', node.pos + 1, repeat('.', strchars(node.value)))
-    execute printf('syn match relabError /%s/ containedin=ALL', escape(errorpattern, '/'))
+    let errorpattern = printf('\%%1l\%%%sv%s', node.pos + 1,
+          \ repeat('.', strchars(node.value)))
+    execute printf('syn match relabError /%s/ containedin=ALL',
+          \ escape(errorpattern, '/'))
   else
     DbgRELab printf('OnTextChange: matches:')
     let offset = len(lines) + 1
@@ -950,19 +1057,22 @@ function! RELabOnTextChange() "{{{
     DbgRELab printf('OnTextChange -> matches: match_list: %s', group_list)
     for i in range(len(group_list))
       if i == 0
-        DbgRELab printf('OnTextChange -> matches -> Group All: pattern: %s', group_list[i])
+        DbgRELab printf('OnTextChange -> matches -> Group All: pattern: %s',
+              \ group_list[i])
         let syn_template =
-              \'syn match relabGroupMatchAll /%s/ containedin=relabReport keepend'
+              \ 'syn match relabGroupMatchAll /%s/ containedin=relabReport keepend'
         execute printf(syn_template, group_list[i])
       elseif i == 1
-        DbgRELab printf('OnTextChange -> matches -> Group 0: pattern: %s', group_list[i])
+        DbgRELab printf('OnTextChange -> matches -> Group 0: pattern: %s',
+              \ group_list[i])
         let syn_template =
-              \'syn match relabGroupMatch0 /%s/ containedin=relabGroupMatchAll keepend'
+              \ 'syn match relabGroupMatch0 /%s/ containedin=relabGroupMatchAll keepend'
         execute printf(syn_template, group_list[i])
       else
-        DbgRELab printf('OnTextChange -> matches -> Group %s: pattern: %s', i - 1, group_list[i])
+        DbgRELab printf('OnTextChange -> matches -> Group %s: pattern: %s',
+              \ i - 1, group_list[i])
         let syn_template =
-              \'syn match relabGroupMatch%s /%s/ containedin=relabGroupMatch%s keepend'
+              \ 'syn match relabGroupMatch%s /%s/ containedin=relabGroupMatch%s keepend'
         execute printf(syn_template, i - 1, group_list[i], i - 2)
       endif
     endfor
@@ -981,34 +1091,30 @@ endfunction "}}}
 function! RELabSetUp(regexp) range "{{{
   let regexp = empty(a:regexp) ? @/ : a:regexp
   let sample = getline(a:firstline, a:lastline)
-  let bufnr = get(s:, 'bufnr', bufnr('relab'))
+  let bufnr = bufnr('^RELab$')
   if bufnr >= 0
+    DbgRELab printf('SetUp -> buffer exists: bufnr: %s', bufnr)
     let winnr = bufwinnr(bufnr)
     if winnr >= 0
+      DbgRELab printf('SetUp -> buffer exists -> on window')
       exec printf('%swincmd w', winnr)
     else
+      DbgRELab printf('SetUp -> buffer exists -> show it')
       if get(g:, 'relab_split', 1)
         split relab
       endif
       exec printf('buffer %s', bufnr)
     endif
   else
+    DbgRELab printf('SetUp -> create it')
     if get(g:, 'relab_split', 1)
       split relab
     else
       edit relab
     endif
   endif
-  "if !exists(s:bufnr)
-    let s:bufnr = bufnr('%')
-    setlocal filetype=relab buftype=nofile noundofile noswapfile 
-    augroup RELab
-      autocmd!
-      autocmd TextChanged,TextChangedI <buffer> call RELabOnTextChange()
-      "autocmd BufWinLeave,WinLeave <buffer> let @/ = getline(1)
-    augroup END
-  "endif
-  let lines = [regexp, '', '^^^^^^^^^^ Sample text goes under this line ^^^^^^^^^^']
+  let lines = [regexp, '',
+        \ '^^^^^^^^^^ Sample text goes under this line ^^^^^^^^^^']
   let lines += sample
   call setline(1, lines)
 endfunction "}}}
@@ -1721,6 +1827,13 @@ function! RELabTest(...) abort "{{{
   "let has_error = !empty(p.errors)
   "call assert_true(has_error, input)
 
+  let input =    '\'
+  let expected = '\m\C\\'
+  let output = p.parse(input).match_group(0, 0)
+  call assert_equal(expected, output, input)
+  "let has_error = !empty(p.errors)
+  "call assert_true(has_error, input)
+
   if !empty(v:errors)
     let g:relab_debug = 0
     echohl ErrorMsg
@@ -1738,6 +1851,14 @@ endfunction "}}}
 
 command! -nargs=* -range=% RELab <line1>,<line2>call RELabSetUp(<q-args>)
 command! -nargs=+ DbgRELab call RELabDebug(<args>)
+
+augroup RELab
+  autocmd!
+  autocmd TextChanged,TextChangedI RELab call RELabOnTextChange()
+  autocmd BufRead,BufNewFile RELab setlocal filetype=relab buftype=nofile
+        \ noundofile noswapfile 
+  "autocmd BufWinLeave,WinLeave RELab let @/ = getline(1)
+augroup END
 
 " TODO find nicer colors
 hi default relabGroupMatchAll guibg=#000000 guifg=#dddddd ctermbg=0   ctermfg=252
