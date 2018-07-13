@@ -2,7 +2,7 @@ function! relab#tests#run(...) abort
   let debug = get(g:, 'relab_debug', 0)
   let g:relab_debug = get(a:, 1, 0)
 
-  let p = relab#parser()
+  let p = relab#parser#new()
 
   let v:errors = []
 
@@ -664,6 +664,13 @@ function! relab#tests#run(...) abort
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
+  let input =    '[[:abc:]]'
+  let expected = '\m\C[[:abc:]]'
+  let output = p.parse(input).match_group(0)
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
   let input =    'abc\(def\|ghi\)jkl'
   let expected = '\m\Cabc\(def\|ghi\)jkl'
   let output = p.parse(input).match_group(0)
@@ -713,6 +720,7 @@ function! relab#tests#run(...) abort
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
+  let g:relab_debug = debug
   if !empty(v:errors)
     let g:relab_debug = 0
     echohl ErrorMsg
@@ -724,6 +732,8 @@ function! relab#tests#run(...) abort
       echohl Normal
       echon e
     endfor
+    let g:relab_debug = debug
+    return 0
   endif
-  let g:relab_debug = debug
+  return 1
 endfunction

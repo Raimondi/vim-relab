@@ -1,0 +1,175 @@
+$	/$	At end of pattern or branch, end-of-line with zero width; at other positions, a literal '$'.
+*	/star	0 or more of the preceding atom, as many as possible.
+.	/.	Any single character, but not an end-of-line.
+[	/[]	Starts a collection. It matches any single character on it.
+[..]	[..]	A collation element.
+[:alnum:]	[:alnum:]	ASCII letters and digits.
+[:alpha:]	[:alpha:]	ASCII letters.
+[:backspace:]	[:backspace:]	The <BS> character.
+[:blank:]	[:blank:]	Space and tab.
+[:cntrl:]	[:cntrl:]	ASCII control characters.
+[:digit:]	[:digit:]	Decimal digits '0' to '9'.
+[:escape:]	[:escape:]	The <Esc> character.
+[:graph:]	[:graph:]	ASCII printable characters excluding space.
+[:lower:]	[:lower:]	Lowercase letters (all letters when 'ignorecase' is used).
+[:print:]	[:print:]	Printable characters including space.
+[:punct:]	[:punct:]	ASCII punctuation characters.
+[:return:]	[:return:]	The <CR> character.
+[:space:]	[:space:]	ASCII whitespace characters.
+[:tab:]	[:tab:]	The <Tab> character.
+[:upper:]	[:upper:]	Uppercase letters (all letters when 'ignorecase' is used).
+[:xdigit:]	[:xdigit:]	Hexadecimal digits: 0-9, a-f, A-F.
+[==]	[==]	An equivalence class.
+[\d	/\]	The character "%s".
+[\di	/\]	The character "%s" or the character "%s".
+[\o	/\]	The character "%s".
+[\oi	/\]	The character "%s" or the character "%s".
+[\U	/\]	The character "%s".
+[\u	/\]	The character "%s".
+[\Ui	/\]	The character "%s" or the character "%s".
+[\ui	/\]	The character "%s" or the character "%s".
+[\x	/\]	The character "%s".
+[\xi	/\]	The character "%s" or the character "%s".
+[^	E944	When the collection begins with "^", it matches any single character NOT in the collection.
+\%#	/\%#	With the cursor position with zero width.  Only works when matching in a buffer displayed in a window.
+\%#=	/\%#=	select regexp engine.
+\%$	\%$	End of the file.  When matching with a string, matches the end of the string.
+\%'m	/\%'m	With the position of mark m with zero width.
+\%(	/\%(	Starts a non-capturing group.
+\%)	/\%(	Ends a non-capturing group.
+\%<'m	/\%<'m	Before the position of mark m with zero width.
+\%<c	/\%>c	Before a specific column with zero width.
+\%<l	/\%>l	Above a specific line (lower line number) with zero width.
+\%<v	/\%>v	Before a specific virtual column with zero width.
+\%>'m	/\%>'m	After the position of mark m with zero width.
+\%>c	/\%<c	After a specific column with zero width.
+\%>l	/\%<l	Below a specific line (higher line number) with zero width.
+\%>v	/\%<v	After a specific virtual column with zero width.
+\%[	/\%[]	A sequence of optionally matched atoms.  This always matches.
+\%]	/\%[]	Ends optional group.
+\%^	/\%^	Start of the file (or string) with zero width.
+\%c	/\%c	In a specific column with zero width.
+\%C	/\%C	Use "\%C" to skip any composing characters.
+\%d	/\%d	The character "%s".
+\%di	/\%d	The character "%s" or the character "%s".
+\%l	/\%l	In a specific line with zero width.
+\%o	/\%o	The character "%s".
+\%oi	/\%o	The character "%s" or the character "%s".
+\%U	/\%U	The character "%s".
+\%u	/\%u	The character "%s".
+\%Ui	/\%U	The character "%s" or the character "%s".
+\%ui	/\%u	The character "%s" or the character "%s".
+\%v	/\%v	In a specific virtual column with zero width.
+\%V	/\%V	Inside the Visual area with zero width.
+\%x	/\%x	The character "%s".
+\%xi	/\%x	The character "%s" or the character "%s".
+\&	/\&	Concatenation, works like a logical AND, matches the subexpression on the righ only if the subexpression on the left also matches.
+\(	/\(	Starts a capturing group.
+\)	/\)	Ends a capturing group.
+\+	/\+	1 or more of the preceding atom, as many as possible.
+\1	/\1	The same string that was matched by the first sub-expression in \( and \).
+\2	/\2	The same string that was matched by the second sub-expression in \( and \).
+\3	/\3	The same string that was matched by the third sub-expression in \( and \).
+\4	/\4	The same string that was matched by the fourth sub-expression in \( and \).
+\5	/\5	The same string that was matched by the fifth sub-expression in \( and \).
+\6	/\6	The same string that was matched by the sixth sub-expression in \( and \).
+\7	/\7	The same string that was matched by the seventh sub-expression in \( and \).
+\8	/\8	The same string that was matched by the eighth sub-expression in \( and \).
+\9	/\9	The same string that was matched by the ninth sub-expression in \( and \).
+\<	/\<	The beginning of a word with zero width: The next char is the first char of a word.  The 'iskeyword' option specifies what is a word character.
+\=	/\=	0 or 1 of the preceding atom, as many as possible.
+\>	/\>	The end of a word with zero width: The previous char is the last char of a word.  The 'iskeyword' option specifies what is a word character.
+\?	/?	0 or 1 of the preceding atom, as many as possible. Cannot be used when searching backwards with the "?" command.
+\@!	/\@!	With zero width if the preceding atom does NOT match at the current position.
+\@123<!	/\@<!	With zero width if the preceding atom does NOT match just before what follows but only look back %s bytes.
+\@123<=	/\@<=	With zero width if the preceding atom matches just before what follows but only look bacl %s bytes.
+\@<!	/\@<!	With zero width if the preceding atom does NOT match just before what follows.
+\@<=	/\@<=	With zero width if the preceding atom matches just before what follows.
+\@=	/\@=	The preceding atom with zero width.
+\@>	/\@>	The preceding atom like matching a whole pattern.
+\_$	/\_$	End-of-line with zero width. Can be used at any position in the pattern.
+\_.	/\_.	Any single character or end-of-line.
+\_[	/\_[]	Starts a collection. It matches any single character in the collection or a end-of-line (like \n).
+\_^	/\_^	Start-of-line. zero-width  Can be used at any position in the pattern.
+\_A	/\A	A non-alphabetic character: [^A-Za-z] or a end-of-line (like \n).
+\_a	/\a	An alphabetic character: [A-Za-z] or a end-of-line (like \n).
+\_d	/\d	A digit: [0-9] or a end-of-line (like \n).
+\_D	/\D	A non-digit: [^0-9] or a end-of-line (like \n).
+\_f	/\f	A file name character (see 'isfname' option) or a end-of-line (like \n).
+\_F	/\F	A file name character, but excluding digits or a end-of-line (like \n).
+\_h	/\h	A head of word character: [A-Za-z_] or a end-of-line (like \n).
+\_H	/\H	A non-head of word character: [^A-Za-z_] or a end-of-line (like \n).
+\_i	/\i	An identifier character (see 'isident' option) or a end-of-line (like \n).
+\_I	/\I	An identifier character, but excluding digits or a end-of-line (like \n).
+\_k	/\k	A keyword character (see 'iskeyword' option) or a end-of-line (like \n).
+\_K	/\K	A keyword character, but excluding digits or a end-of-line (like \n).
+\_l	/\l	A lowercase character: [a-z] or a end-of-line (like \n).
+\_L	/\L	A non-lowercase character: [^a-z] or a end-of-line (like \n).
+\_O	/\O	A non-octal digit: [^0-7] or a end-of-line (like \n).
+\_o	/\o	An octal digit: [0-7] or a end-of-line (like \n).
+\_p	/\p	A printable character (see 'isprint' option) or a end-of-line (like \n).
+\_P	/\P	A printable character, but excluding digits or a end-of-line (like \n).
+\_S	/\S	A non-whitespace character; opposite of \s or a end-of-line (like \n).
+\_s	/\s	A whitespace character: <Space> and <Tab> or a end-of-line (like \n).
+\_U	/\U	A non-uppercase character: [^A-Z] or a end-of-line (like \n).
+\_u	/\u	An uppercase character: [A-Z] or a end-of-line (like \n).
+\_W	/\W	A non-word character: [^0-9A-Za-z_] or a end-of-line (like \n).
+\_w	/\w	A word character: [0-9A-Za-z_] or a end-of-line (like \n).
+\_x	/\x	A hex digit: [0-9A-Fa-f] or a end-of-line (like \n).
+\_X	/\X	A non-hex digit: [^0-9A-Fa-f] or a end-of-line (like \n).
+\A	/\A	A non-alphabetic character: [^A-Za-z].
+\a	/\a	An alphabetic character: [A-Za-z].
+\C	/\C	Makes that the whole pattern is handled like 'ignorecase' is off.
+\c	/\c	Makes that the whole pattern is handled like 'ignorecase' is on.
+\d	/\d	A digit: [0-9].
+\D	/\D	A non-digit: [^0-9].
+\f	/\f	A file name character (see 'isfname' option).
+\F	/\F	A file name character, but excluding digits.
+\h	/\h	A head of word character: [A-Za-z_].
+\H	/\H	A non-head of word character: [^A-Za-z_].
+\i	/\i	An identifier character (see 'isident' option).
+\I	/\I	An identifier character, but excluding digits.
+\k	/\k	A keyword character (see 'iskeyword' option).
+\K	/\K	A keyword character, but excluding digits.
+\l	/\l	A lowercase character: [a-z].
+\L	/\L	A non-lowercase character: [^a-z].
+\M	/\M	'magic' off for the following chars in the pattern.
+\m	/\m	'magic' on for the following chars in the pattern.
+\n	/\]	An end-of-line.
+\O	/\O	A non-octal digit: [^0-7].
+\o	/\o	An octal digit: [0-7].
+\p	/\p	A printable character (see 'isprint' option).
+\P	/\P	A printable character, but excluding digits.
+\S	/\S	A non-whitespace character; opposite of \s.
+\s	/\s	A whitespace character: <Space> and <Tab>.
+\U	/\U	A non-uppercase character: [^A-Z].
+\u	/\u	An uppercase character: [A-Z].
+\v	/\v	the following chars in the pattern are "very magic".
+\V	/\V	the following chars in the pattern are "very nomagic".
+\W	/\W	A non-word character: [^0-9A-Za-z_].
+\w	/\w	A word character: [0-9A-Za-z_].
+\x	/\x	A hex digit: [0-9A-Fa-f].
+\X	/\X	A non-hex digit: [^0-9A-Fa-f].
+\Z	/\Z	When "\Z" appears anywhere in the pattern, all composing characters are ignored.
+\ze	/\ze	At any position with zero width, and sets the end of the match there: The previous char is the last char of the whole match.
+\zs	/\zs	At any position with zero width, and sets the start of the match there: The next char is the first char of the whole match.
+\{,m}	/\{	0 to %s of the preceding atom, as many as possible.
+\{,}	/\{	0 or more of the preceding atom, as many as possible (like *).
+\{-,m}	/\{-	0 to %s of the preceding atom, as few as possible.
+\{-,}	/\{-	0 or more of the preceding atom, as few as possible.
+\{-n,m}	/\{-	%s to %s of the preceding atom, as few as possible.
+\{-n,}	/\{-	At least %s of the preceding atom, as few as possible.
+\{-n}	/\{-	%s of the preceding atom.
+\{-}	/\{-	0 or more of the preceding atom, as few as possible.
+\{n,m}	/\{	%s to %s of the preceding atom, as many as possible.
+\{n,}	/\{	At least %s of the preceding atom, as many as possible.
+\{n}	/\{	%s of the preceding atom.
+\{}	/\{	0 or more of the preceding atom, as many as possible (like *).
+\|	/bar	Alternation, works like a logical OR, matches either the left or right subexpressions.
+]	/[]	Ends the collection.
+^	/^	At beginning of pattern or after "\|", "\(", "\%(" or "\n": matches start-of-line with zero width; at other positions, matches literal '^'.
+a-b	E944	A character in the range from %s (code %s) to %s code(%s) or in the range from %s (code %s) to %s code(%s).
+A-B	E944	A character in the range from %s (code %s) to %s code(%s).
+x		Matches the character "%s" (code %s) or character "%s" (code %s).
+X		Matches the character "%s" (code %s).
+~	/\~	The last given substitute string.
