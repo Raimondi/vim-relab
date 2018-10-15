@@ -727,10 +727,15 @@ function! relab#tests#run(...) abort
     echom printf('%s error(s) found:', len(v:errors))
     echohl Normal
     for e in v:errors
+      let test = substitute(e, '\(.\{-}\) Expected .\{-} but got .*', '  \1', '')
+      let expected = substitute(e, '.\{-} Expected \(.\{-}\) but got .*', '  expected: \1', '')
+      let result = substitute(e, '.\{-} Expected .\{-} but got \(.*\)', '  but got : \1', '')
       echohl WarningMsg
       echom  'Test failed: '
       echohl Normal
-      echon e
+      echom test
+      echom expected
+      echom result
     endfor
     let g:relab_debug = debug
     return 0

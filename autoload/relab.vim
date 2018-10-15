@@ -54,13 +54,13 @@ function! relab#ontextchange() "{{{
         DbgRELab printf('ontextchange -> matches -> Group 0: pattern: %s',
               \ group_list[i])
         let syn_template = 'syn match relabGroupMatch0 /%s/ '
-              \ . 'containedin=relabGroupMatchAll'
+              \ . 'containedin=relabGroupMatchAll contained'
         execute printf(syn_template, group_list[i])
       else
         DbgRELab printf('ontextchange -> matches -> Group %s: pattern: %s',
               \ i - 1, group_list[i])
         let syn_template = 'syn match relabGroupMatch%s /%s/ '
-              \ . 'containedin=relabGroupMatch%s'
+              \ . 'containedin=relabGroupMatch%s contained'
         execute printf(syn_template, i - 1, group_list[i], i - 2)
       endif
     endfor
@@ -70,37 +70,16 @@ function! relab#ontextchange() "{{{
   echom printf('Time for %s in line %s is %s', pattern, line('.'), time)
 endfunction "}}}
 
-function! relab#debug(msg) "{{{
-  if get(g:, 'relab_debug', 0)
-    echom printf('RELab: %s', a:msg)
+function! relab#debug(verbose, msg) "{{{
+  if a:verbose <= get(g:, 'relab_debug', 0)
+    echom printf('%sRELab: %s', a:verbose, a:msg)
   endif
 endfunction "}}}
 
 function! relab#setup(regexp) range "{{{
   let regexp = empty(a:regexp) ? @/ : a:regexp
   let sample = getline(a:firstline, a:lastline)
-  let bufnr = bufnr('^RELab$')
-  if bufnr >= 0
-    DbgRELab printf('setup -> buffer exists: bufnr: %s', bufnr)
-    let winnr = bufwinnr(bufnr)
-    if winnr >= 0
-      DbgRELab printf('setup -> buffer exists -> on window')
-      exec printf('%swincmd w', winnr)
-    else
-      DbgRELab printf('setup -> buffer exists -> show it')
-      if get(g:, 'relab_split', 1)
-        split RELab
-      endif
-      exec printf('buffer %s', bufnr)
-    endif
-  else
-    DbgRELab printf('setup -> create it')
-    if get(g:, 'relab_split', 1)
-      split RELab
-    else
-      edit RELab
-    endif
-  endif
+  call relab#show_buffer('RELab', {'split': get(g:, 'relab_split', 1)})
   let lines = [regexp, '',
         \ '^^^^^^^^^^ Sample text goes under this line ^^^^^^^^^^']
   let lines += sample
@@ -110,5 +89,31 @@ endfunction "}}}
 function! relab#analyze() "{{{
 endfunction "}}}
 
-let s:autoload_dir = expand('<sfile>:p:h')
+function! relab#show_buffer(bufname, ...) "{{{
+  let split  = a:0 ? get(a:1, 'split',  1) : 1
+  let vert   = a:0 ? get(a:1, 'vert',   0) : 0
+  let tab    = a:0 ? get(a:1, 'tab',    0) : 0
+  let bottom = a:0 ? get(a:1, 'bottom', 0) : 0
+  let right  = a:0 ? get(a:1, 'right',  0) : 0
+  let bufexpr = printf('^%s$', a:bufname)
+  let bufnr  = bufnr(bufexpr)
+  let winnr  = bufwinnr(bufexpr)
+  if tab
+    execute printf('tabedit %s', fnameescape(a:bufname))
+  elseif bufnr == -1 || winnr == -1
+    if split
+      let v = vert ? 'v' : ''
+      let direction = bottom || right ? 'botright' : 'topleft'
+      let command = printf('%s %ssplit', direction, v)
+    elseif bufnr == -1
+      let command = 'edit'
+    else
+      let command = 'buffer'
+    endif
+    execute printf('%s %s', command, fnameescape(a:bufname))
+  else
+    exec printf('%swincmd w', winnr)
+  endif
+endfunction "}}}
+
 let relab = relab#parser#new()

@@ -462,9 +462,9 @@ function! relab#parser#new()
     return extend(lines, map(copy(self.sequence), 'v:val.line'))
   endfunction "}}}
 
-  function! parser.match_group(offset, ...) "{{{
-    DbgRELab printf('match group: offset: %s, group: %s, regexp: %s',
-          \ a:offset, (a:0 ? a:1 : 'all'), self.input)
+  function! parser.match_group(line_offset, ...) "{{{
+    DbgRELab printf('match group: line_offset: %s, group: %s, regexp: %s',
+          \ a:line_offset, (a:0 ? a:1 : 'all'), self.input)
     if self.capt_groups < get(a:, 1, 0)
       DbgRELab printf('match group: arg > available groups')
       let items = []
@@ -476,8 +476,8 @@ function! relab#parser#new()
       " like in 'abc\(de\zefg\|hij\)jkl'
       DbgRELab printf('match group: arg > 0')
       let items = ['\m\C']
-      if a:offset
-        call add(items, printf('\%%>%sl', a:offset))
+      if a:line_offset
+        call add(items, printf('\%%>%sl', a:line_offset))
       endif
       DbgRELab printf('match group: capt_groups: %s', map(copy(self.sequence),
             \ 'get(v:val, ''capt_groups'', 0)'))
@@ -494,9 +494,9 @@ function! relab#parser#new()
             DbgRELab printf('match group -> branch -> add \zs:')
             call add(items, '\zs')
           endif
-          if a:offset && node.level == -1
+          if a:line_offset && node.level == -1
             DbgRELab printf('match group -> is_branch -> add line nr:')
-            call add(items, printf('\%%>%sl', a:offset))
+            call add(items, printf('\%%>%sl', a:line_offset))
           endif
         elseif node.starts_capt_group()
           DbgRELab printf('match group -> starts_capt_group:')
@@ -520,8 +520,8 @@ function! relab#parser#new()
           endif
         elseif node.id ==# '\%l'
           DbgRELab printf('match group -> is_line_nr:')
-          if a:offset
-            let linenr = matchstr(node.magic, '\d\+') + a:offset
+          if a:line_offset
+            let linenr = matchstr(node.magic, '\d\+') + a:line_offset
             call add(items, substitute(node.magic, '\d\+', linenr, ''))
           else
             call add(items, node.magic)
@@ -531,8 +531,8 @@ function! relab#parser#new()
           call add(items, '\\')
         elseif node.id ==# '\%^'
           DbgRELab printf('match group -> is_bof:')
-          if a:offset
-            call add(items, printf('\%%%sl\_^', a:offset))
+          if a:line_offset
+            call add(items, printf('\%%%sl\_^', a:line_offset))
           else
             call add(items, node.magic)
           endif
@@ -545,7 +545,7 @@ function! relab#parser#new()
         endif
       endfor
     endif
-    if len(items) - (a:offset > 0) > 1
+    if len(items) - (a:line_offset > 0) > 1
       let group_re = join(filter(items, '!empty(v:val)'), '')
     else
       let group_re = ''
