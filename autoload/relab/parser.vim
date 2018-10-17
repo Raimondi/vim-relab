@@ -11,9 +11,10 @@ for line in readfile(printf('%s/%s', expand('<sfile>:p:h'), 'id_key.txt'))
   endif
 endfor
 
-function! relab#parser#new()
+function! relab#parser#new(...)
   let parser = {}
   let parser.id_map = s:id_map
+  let parser.sep = a:0 ? a:1 : ''
 
   let node = {} "{{{
 
@@ -227,12 +228,14 @@ function! relab#parser#new()
     let self.token = ''
     let self.tokens = []
     let self.nest_stack = []
-    let self.input = get(a:, '1', '')
-    let self.length = strchars(self.input)
+    let self.input = ''
+    let self.length = 0
     let self.pos = 0
     let self.capt_groups = 0
     let self.errors = []
     let self.sequence = []
+    let self.sep = a:0 ? a:1 : self.sep
+    let self.input_remaining = ''
 
     let self.root.magicness = self.magicness
     let self.root.capt_groups = self.capt_groups
@@ -244,6 +247,11 @@ function! relab#parser#new()
     let self.root.level = 0
 
     let self.parent = self.root
+    if len(self.sep) > 1 || self.sep =~# '[a-zA-Z0-9]'
+      "error
+      echoerr printf('RELab: Wrong separator: %s', self.sep)
+      return {}
+    endif
     return self
   endfunction "}}}
 
@@ -709,6 +717,11 @@ function! relab#parser#new()
       " \%#= must be the first thing
       let self.token = matchstr(self.input, '^\\%#=.\?')
       let self.pos = strchars(self.token)
+    elseif !empty(self.sep)
+          \ && strcharpart(self.input, self.pos, 1) ==# self.sep
+      let self.token = ''
+      let self.pos += 1
+      let self.input_remaining = self.input[self.pos : ]
     else
       let self.token = strcharpart(self.input, self.pos, 1)
       let self.pos += 1
@@ -726,7 +739,9 @@ function! relab#parser#new()
   function! parser.parse(input) "{{{
     DbgRELab printf('')
     DbgRELab printf('parse: %s', a:input)
-    call self.init(a:input)
+    let input = empty(self.sep) ? a:input : a:input[1:]
+    let self.input = input
+    let self.length = strchars(input)
     while self.next()
       let token = self.token
       let magicness = self.magicness
@@ -995,6 +1010,9 @@ function! relab#parser#new()
         "}}}
 
       else
+        if !empty(self.sep) && node.value ==# '\' . self.sep
+          let node.value = self.sep
+        endif
         DbgRELab  printf('parse -> literal match')
         let node.id = node.ignorecase ? 'x' : 'X'
       endif
@@ -1016,5 +1034,5 @@ function! relab#parser#new()
     return self
   endfunction "}}}
 
-  return parser.init()
+  return parser.init(get(a:, '1', ''))
 endfunction
