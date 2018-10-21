@@ -13,11 +13,14 @@ function! s:hi_colors()
   hi def relabGrpMatch9   guibg=#800000 guifg=#dddddd ctermbg=1   ctermfg=252
 endfunction
 
-command! -nargs=* -range=% RELab <line1>,<line2>call relab#setup(<q-args>)
+command! RELab call relab#setup()
 command! -nargs=* -complete=file RELabSampleText
       \ call relab#get_sample_text(<q-args>)
+command! -count RELabParseLine call relab#parse_line(<count>)
 command! -range=% RELabValidate call relab#show_validation()
-command! -range=% RELabAnalyze call relab#show_analysis()
+command! -nargs=+ RELabAnalyze call relab#show_analysis(<q-args>)
+command! -nargs=+ RELabMatches
+      \ call relab#show_matches(<q-args>)
 
 if get(g:, 'relab_debug', 0)
   command! -count=1 -nargs=+ DbgRELab call relab#debug(<count>, <args>)
@@ -27,11 +30,11 @@ endif
 
 augroup RELab
   autocmd!
-  autocmd TextChanged,TextChangedI RELab call relab#ontextchange()
+  "autocmd TextChanged,InsertLeave regexp.relab call relab#ontextchange()
   autocmd BufRead,BufNewFile RELab setlocal filetype=relab buftype=nofile
         \ noundofile noswapfile
-  autocmd BufWinLeave,WinLeave RELab if get(s:, 'relab_auto_search', 0)
-        \ | let @/ = getline(1) | endif
+  "autocmd BufWinLeave,WinLeave RELab if get(s:, 'relab_auto_search', 0)
+  "      \ | let @/ = getline(1) | endif
   autocmd ColorScheme * call s:hi_colors()
 
   if get(g:, 'relab_debug', 0)

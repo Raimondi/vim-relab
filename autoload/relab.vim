@@ -1,73 +1,164 @@
-function! relab#ontextchange() "{{{
-  DbgRELab printf('ontextchange:')
-  let pattern = getline('1')
-  if pattern ==# get(s:, 'previous_pattern', '')
-    echom 'skipped'
+function! relab#setup() "{{{
+  1DbgRELab printf('setup:')
+  let data_dir = s:relab_dir . '/relab'
+  execute printf('tabedit %s/regexp.relab', data_dir)
+  execute printf('split %s/sample.relab', data_dir)
+  let win_width = (winwidth('.') - 1) * 33 / 100
+  vsplit analysis.relab
+  setlocal buftype=nofile
+  execute printf('vertical resize %s', win_width)
+  wincmd j
+  vsplit results.relab
+  setlocal buftype=nofile
+  execute printf('vertical resize %s', win_width)
+endfunction "}}}
+
+function! relab#parse_line(linenr) "{{{
+  1DbgRELab printf('parse_line:')
+  let linenr = a:linenr > 0 ? a:linenr : '.'
+  let pattern = getline(linenr)
+  let parser = relab#parser#new('/')
+  call parser.parse(pattern)
+  let matches = {}
+  let matches.lines = []
+  let matches.capt_groups = parser.capt_groups
+  function matches.get(...)
+    for group in range(self.capt_groups + 1)
+      let indent = group == 0 ? '' : '  '
+      let line = printf('%s%s: %s', indent, group,
+            \ get(a:, group + 1, ''))
+      call add(self.lines, line)
+    endfor
     return
-  endif
+  endfunction
+  let sample_path = printf('%s/%s', s:relab_dir, 'sample.relab')
+  let regexp_path = expand('%:p')
+  let analysis_path = 'analysis.relab'
+  let results_path = 'results.relab'
   let lazyredraw = &lazyredraw
   set lazyredraw
-  let s:previous_pattern = pattern
-  let time1 = reltime()
-  let curpos = getpos('.')
-  call g:relab.parse(pattern)
-  if line('$') > 1
-    2,/^^^^^^^^^^^ .\+ ^^^^^^^^^^$/d_
+  if !s:switch_buffer(results_path)
+    DbgRELab printf('ontextchange: could not switch to "%s"',
+          \ results_path)
+    " Error
+    return
   endif
-  let lines = g:relab.lines()
-  let lines += ['', '^^^^^^^^^^ Sample text goes under this line ^^^^^^^^^^']
-  call append(1, lines)
-  call setpos('.', curpos)
-  for id in map(filter(getmatches(), 'v:val.group =~# ''^relab'''),
-        \ 'v:val.id')
-    DbgRELab printf('ontextchange: id: %s', id)
-    call matchdelete(id)
-  endfor
-  " TODO fix overlapping highlight, like searching with /\(p\).* on this text:
-  " probably present
-  " only the first p should be highlighted as the first capt group because .*
-  " matches the rest of the line, including the second p
-  for name in range(11)
-    execute 'silent! syn clear relabGroupMatch' . (name ? name - 1 : 'All')
-  endfor
-  silent! syn clear relabError
-  if !empty(g:relab.errors)
-    DbgRELab printf('ontextchange: error:')
-    let node = g:relab.errors[0]
-    let errorpattern = printf('\%%1l\%%%sv%s', node.pos + 1,
-          \ repeat('.', strchars(node.value)))
-    execute printf('syn match relabError /%s/ containedin=ALL',
-          \ escape(errorpattern, '/'))
-  else
-    DbgRELab printf('ontextchange: matches:')
-    let offset = len(lines) + 1
-    let group_list = g:relab.match_groups(offset)
-    DbgRELab printf('ontextchange -> matches: match_list: %s', group_list)
-    for i in range(len(group_list))
-      if i == 0
-        DbgRELab printf('ontextchange -> matches -> Group All: pattern: %s',
-              \ group_list[i])
-        let syn_template =
-              \ 'syn match relabGroupMatchAll /%s/ containedin=relabReport'
-        execute printf(syn_template, group_list[i])
-      elseif i == 1
-        DbgRELab printf('ontextchange -> matches -> Group 0: pattern: %s',
-              \ group_list[i])
-        let syn_template = 'syn match relabGroupMatch0 /%s/ '
-              \ . 'containedin=relabGroupMatchAll contained'
-        execute printf(syn_template, group_list[i])
-      else
-        DbgRELab printf('ontextchange -> matches -> Group %s: pattern: %s',
-              \ i - 1, group_list[i])
-        let syn_template = 'syn match relabGroupMatch%s /%s/ '
-              \ . 'containedin=relabGroupMatch%s contained'
-        execute printf(syn_template, i - 1, group_list[i], i - 2)
-      endif
-    endfor
+  let sample_lines = getbufline(sample_path, 1, '$')
+  %delete _
+  call setline(1, sample_lines)
+  let submatches =
+        \ join(map(range(10), {key, val -> 'submatch('.val.')'}), ',')
+  execute printf('%%s/%s/\=matches.get(%s)/',
+        \ escape(join(parser.values(), ''), '/'), submatches)
+  if !s:switch_buffer(analysis_path)
+    DbgRELab printf('ontextchange: could not switch to "%s"',
+          \ analysis_path)
+    " Error
+    return
+  endif
+  %delete _
+  call setline(parser.lines, 1)
+  if !s:switch_buffer(regexp_path)
+    DbgRELab printf('ontextchange: could not switch to "%s"',
+          \ regexp_path)
+    " Error
+    return
   endif
   let &lazyredraw = lazyredraw
-  let time = reltimestr(reltime(time1, reltime()))
-  echom printf('Time for %s in line %s is %s', pattern, line('.'), time)
+endfunction "}}}
+
+function! relab#show_analysis(regexp) "{{{
+  1DbgRELab printf('show_analysis:')
+  call s:get_info('analysis')
+  let parser = relab#parser#new()
+  call parser.parse(a:regexp)
+  let lines = ['RegExp Analysis', a:regexp]
+  let lines += parser.lines()
+  return s:set_scratch(lines)
+endfunction "}}}
+
+function! relab#show_matches(regexp) "{{{
+  1DbgRELab printf('show_matches:')
+  let info = s:get_info('matches')
+  let matches = {}
+  let matches.lines = []
+  function matches.get(groups, ...)
+    for group in range(a:groups + 1)
+      let indent = group == 0 ? '' : '  '
+      let line = printf('%s%s: %s', indent, group,
+            \ get(a:, group + 1, ''))
+      call add(self.lines, line)
+    endfor
+    return a:1
+  endfunction
+  let parser = relab#parser#new()
+  call parser.parse(a:regexp)
+  if !s:set_scratch(info.lines)
+    return
+  endif
+  let regexp = join(parser.values(), '')
+  let lines = ['RegExp Matches', regexp, '']
+  if !empty(parser.errors)
+    call add(lines, regexp)
+    call extend(lines, parser.lines())
+  elseif search(regexp, 'cnw')
+    let submatches =
+          \ join(map(range(10), {key, val -> 'submatch('.val.')'}), ',')
+    let command = 'silent! %%s/%s/\=matches.get(parser.capt_groups, %s)/'
+    execute printf(command, escape(regexp, '/'),
+          \ submatches)
+    call extend(lines, matches.lines)
+  else
+    call add(lines, 'No matches found')
+  endif
+  %delete _
+  return setline(1, lines) == 0
+endfunction "}}}
+
+function! s:set_scratch(lines) "{{{
+  let fname = 'scratch.relab'
+  let winnr = bufwinnr(fname)
+  if winnr >= 0
+    execute printf('%swincmd w', winnr)
+  else
+    execute printf('botright split %s', fname)
+    "setlocal filetype=relab
+    setlocal buftype=nofile
+    setlocal noundofile
+    setlocal noswapfile
+    setlocal undolevels=-1
+  endif
+  if bufname('%') !=# fname
+    return 1
+  endif
+  %delete _
+  return setline(1, a:lines) == 0
+endfunction "}}}
+
+function! s:get_info(wintype) "{{{
+  1DbgRELab printf('get_info:')
+  let info = get(g:, 'relab_info', {})
+  if bufname('%') !=# 'scratch.relab'
+    let info.lines = getline(1, '$')
+    if get(info, 'previous', '') ==# a:wintype
+      let info.previous = a:wintype
+    endif
+  endif
+  let g:relab_info = info
+  return g:relab_info
+endfunction "}}}
+
+function! s:switch_buffer(buf) "{{{
+  1DbgRELab printf('switch_buffer:')
+  let bufnr = bufnr(a:buf)
+  if bufnr == bufnr('%')
+    return 1
+  endif
+  if bufnr < 0
+    return 0
+  endif
+  execute printf('buffer %s', bufnr)
+  return bufnr == bufnr('%')
 endfunction "}}}
 
 function! relab#debug(verbose, msg) "{{{
@@ -76,44 +167,5 @@ function! relab#debug(verbose, msg) "{{{
   endif
 endfunction "}}}
 
-function! relab#setup(regexp) range "{{{
-  let regexp = empty(a:regexp) ? @/ : a:regexp
-  let sample = getline(a:firstline, a:lastline)
-  call relab#show_buffer('RELab', {'split': get(g:, 'relab_split', 1)})
-  let lines = [regexp, '',
-        \ '^^^^^^^^^^ Sample text goes under this line ^^^^^^^^^^']
-  let lines += sample
-  call setline(1, lines)
-endfunction "}}}
-
-function! relab#analyze() "{{{
-endfunction "}}}
-
-function! relab#show_buffer(bufname, ...) "{{{
-  let split  = a:0 ? get(a:1, 'split',  1) : 1
-  let vert   = a:0 ? get(a:1, 'vert',   0) : 0
-  let tab    = a:0 ? get(a:1, 'tab',    0) : 0
-  let bottom = a:0 ? get(a:1, 'bottom', 0) : 0
-  let right  = a:0 ? get(a:1, 'right',  0) : 0
-  let bufexpr = printf('^%s$', a:bufname)
-  let bufnr  = bufnr(bufexpr)
-  let winnr  = bufwinnr(bufexpr)
-  if tab
-    execute printf('tabedit %s', fnameescape(a:bufname))
-  elseif bufnr == -1 || winnr == -1
-    if split
-      let v = vert ? 'v' : ''
-      let direction = bottom || right ? 'botright' : 'topleft'
-      let command = printf('%s %ssplit', direction, v)
-    elseif bufnr == -1
-      let command = 'edit'
-    else
-      let command = 'buffer'
-    endif
-    execute printf('%s %s', command, fnameescape(a:bufname))
-  else
-    exec printf('%swincmd w', winnr)
-  endif
-endfunction "}}}
-
+let s:relab_dir = printf('%s', expand('<sfile>:p:h:h'))
 let relab = relab#parser#new()
