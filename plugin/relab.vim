@@ -13,14 +13,13 @@ function! s:hi_colors()
   hi def relabGrpMatch9   guibg=#800000 guifg=#dddddd ctermbg=1   ctermfg=252
 endfunction
 
-command! RELab call relab#setup()
-command! -nargs=* -complete=file RELabSampleText
-      \ call relab#get_sample_text(<q-args>)
-command! -count RELabParseLine call relab#parse_line(<count>)
-command! -range=% RELabValidate call relab#show_validation()
-command! -nargs=+ RELabAnalyze call relab#show_analysis(<q-args>)
-command! -nargs=+ RELabMatches
-      \ call relab#show_matches(<q-args>)
+command! -nargs=+ RELab %RELabGetSample | RELabAnalyze <args>
+command! -bar -range=% RELabGetSample
+      \ call relab#get_sample(<line1>, <line2>)
+command! -count -bar RELabAnalyzeLine call relab#analyze_line(<count>)
+command! -nargs=* RELabAnalyze call relab#show_analysis(<q-args>)
+command! -nargs=* RELabGetMatches call relab#show_matches(0, <q-args>)
+command! -nargs=* RELabValidate call relab#show_matches(1, <q-args>)
 
 if get(g:, 'relab_debug', 0)
   command! -count=1 -nargs=+ DbgRELab call relab#debug(<count>, <args>)
