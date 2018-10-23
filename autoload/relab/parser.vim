@@ -163,7 +163,8 @@ function! relab#parser#new(...)
   endfunction
 
   function! node.follows_nothing() "{{{
-    return empty(self.previous) || self.previous.is_branch()
+    return empty(self.previous) || (self.previous.is_branch()
+          \ && !get(self.previous.children, -1, self.previous).magic ==# '\)')
           \ || self.previous.is_look_around()
   endfunction "}}}
 

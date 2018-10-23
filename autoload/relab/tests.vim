@@ -863,6 +863,14 @@ function! relab#tests#run(...) abort
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
+  let input =     '\(\|\)\+'
+  let expected = ['\(', '\|', '\)', '\+']
+  let p = relab#parser#new()
+  let output = p.parse(input).values()
+  call assert_equal(expected, output, input)
+  let has_error = !empty(p.errors)
+  call assert_false(has_error, input)
+
   let input =     ''
   let expected = {}
   let has_error = 0
