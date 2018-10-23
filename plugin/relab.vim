@@ -13,7 +13,7 @@ function! s:hi_colors()
   hi def relabGrpMatch9   guibg=#800000 guifg=#dddddd ctermbg=1   ctermfg=252
 endfunction
 
-command! -nargs=+ RELab %RELabGetSample | RELabAnalyze <args>
+command! -nargs=* RELab call relab#set(<q-args>)
 command! -bar -range=% RELabGetSample
       \ call relab#get_sample(<line1>, <line2>)
 command! -count -bar RELabAnalyzeLine call relab#analyze_line(<count>)
@@ -36,7 +36,7 @@ augroup RELab
   "      \ | let @/ = getline(1) | endif
   autocmd ColorScheme * call s:hi_colors()
 
-  if get(g:, 'relab_debug', 0)
+  if exists('g:relab_debug') "get(g:, 'relab_debug', 0)
     autocmd BufWritePost relab.vim,*/relab/*.vim source <afile>
           \ | call relab#tests#run() | let relab = relab#parser#new()
     autocmd BufWritePost */autoload/relab/id_key.txt

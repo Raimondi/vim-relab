@@ -1,3 +1,24 @@
+function! relab#set(...) "{{{
+  1DbgRELab printf('set:')
+  let regexp = get(a:, 1, '')
+  let regexp = !empty(regexp) ? regexp : get(s:info, 'regexp', '')
+  if empty(regexp)
+    echohl ErrorMsg
+    echom 'You need to provide a pattern!'
+    echohl Normal
+    return 0
+  endif
+  let s:info.regexp = regexp
+  let parser = relab#parser#new()
+  call parser.parse(regexp)
+  let lines = ['RegExp Analysis', regexp]
+  let lines += parser.lines()
+  if empty(s:info.lines) && bufname('%') !=# 'scratch.relab'
+    let s:info.lines = getline(1, '$')
+  endif
+  return s:set_scratch(lines)
+endfunction "}}}
+
 function! relab#analyze_line(linenr) "{{{
   1DbgRELab printf('analyze_line:')
   let regexp = get(a:, 1, '')
@@ -61,7 +82,7 @@ function! relab#show_matches(validate, ...) "{{{
     let matches = s:get_matches(regexp, parser.capt_groups)
     for item in matches.lines
       if empty(item.matches) && a:validate
-        call add(lines, item.line)
+        call add(lines, printf('-:%s', item.line))
       else
         call extend(lines, item.matches)
       endif
@@ -84,7 +105,7 @@ function! relab#get_sample(first, last) "{{{
     return 0
   endif
   let s:info.lines = lines
-  return 1
+  return s:set_scratch(lines)
 endfunction "}}}
 
 function! s:get_matches(regexp, groupnr) "{{{
@@ -109,10 +130,9 @@ function! s:get_matches(regexp, groupnr) "{{{
   if !search(a:regexp, 'cnw')
     return {}
   endif
-  let regexp = escape(a:regexp, '/')
   %delete _
   call setline(1, s:info.lines)
-  g/^/call matches.run(regexp)
+  g/^/call matches.run(a:regexp)
   return matches
 endfunction "}}}
 
@@ -141,28 +161,64 @@ function! s:set_scratch(lines) "{{{
   return lines_set
 endfunction "}}}
 
-function! s:switch_buffer(buf) "{{{
-  1DbgRELab printf('switch_buffer:')
-  let bufnr = bufnr(a:buf)
-  if bufnr == bufnr('%')
-    return 1
-  endif
-  if bufnr < 0
-    return 0
-  endif
-  execute printf('buffer %s', bufnr)
-  return bufnr == bufnr('%')
-endfunction "}}}
-
 function! relab#debug(verbose, msg) "{{{
   if a:verbose <= get(g:, 'relab_debug', 0)
     echom printf('%sRELab: %s', a:verbose, a:msg)
   endif
 endfunction "}}}
 
-let s:relab_dir = printf('%s', expand('<sfile>:p:h:h'))
 let relab = relab#parser#new()
 let s:info = get(s:, 'info', {})
-let s:info.lines = get(s:info, 'lines', [])
-let s:info.regexp = get(s:info, 'regexp', '')
-let g:relab_info = s:info
+let s:info.regexp = get(s:info, 'regexp', '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$')
+let s:info.lines = get(s:info, 'lines', [
+      \ 'This is some text to play with your regular expressions',
+      \ 'Some emails from http://codefool.tumblr.com/post/15288874550/list-of-valid-and-invalid-email-addresses',
+      \ 'List of Valid Email Addresses',
+      \ '',
+      \ 'email@example.com',
+      \ 'firstname.lastname@example.com',
+      \ 'email@subdomain.example.com',
+      \ 'firstname+lastname@example.com',
+      \ 'email@123.123.123.123',
+      \ 'email@[123.123.123.123]',
+      \ '“email”@example.com',
+      \ '1234567890@example.com',
+      \ 'email@example-one.com',
+      \ '_______@example.com',
+      \ 'email@example.name',
+      \ 'email@example.museum',
+      \ 'email@example.co.jp',
+      \ 'firstname-lastname@example.com',
+      \ '',
+      \ 'List of Strange Valid Email Addresses',
+      \ '',
+      \ 'much.“more\ unusual”@example.com',
+      \ 'very.unusual.“@”.unusual.com@example.com',
+      \ 'very.“(),:;<>[]”.VERY.“very@\\ "very”.unusual@strange.example.com',
+      \ '',
+      \ 'List of Invalid Email Addresses',
+      \ '',
+      \ 'plainaddress',
+      \ '#@%^%#$@#$@#.com',
+      \ '@example.com',
+      \ 'Joe Smith <email@example.com>',
+      \ 'email.example.com',
+      \ 'email@example@example.com',
+      \ '.email@example.com',
+      \ 'email.@example.com',
+      \ 'email..email@example.com',
+      \ 'あいうえお@example.com',
+      \ 'email@example.com (Joe Smith)',
+      \ 'email@example',
+      \ 'email@-example.com',
+      \ 'email@example.web',
+      \ 'email@111.222.333.44444',
+      \ 'email@example..com',
+      \ 'Abc..123@example.com',
+      \ '',
+      \ 'List of Strange Invalid Email Addresses',
+      \ '',
+      \ '“(),:;<>[\]@example.com',
+      \ 'just"not"right@example.com',
+      \ 'this\ is"really"not\allowed@example.com',
+      \ ])
