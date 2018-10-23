@@ -1,3 +1,8 @@
+scriptencoding utf-8
+" ToDo:
+" - Persistent storage
+" - Live result update
+
 function! relab#set(...) "{{{
   1DbgRELab printf('set:')
   let regexp = get(a:, 1, '')
@@ -16,10 +21,10 @@ function! relab#set(...) "{{{
   if empty(s:info.lines) && bufname('%') !=# 'scratch.relab'
     let s:info.lines = getline(1, '$')
   endif
-  return s:set_scratch(lines)
+  return relab#show_matches(1, regexp)
 endfunction "}}}
 
-function! relab#analyze_line(linenr) "{{{
+function! relab#line2regexp(linenr) "{{{
   1DbgRELab printf('analyze_line:')
   let regexp = get(a:, 1, '')
   let regexp = !empty(regexp) ? regexp : get(s:info, 'regexp', '')
@@ -90,17 +95,20 @@ function! relab#show_matches(validate, ...) "{{{
   else
     call add(lines, 'No matches found')
   endif
-  %delete _
+  silent! %delete _
   1DbgRELab string(lines)
   return setline(1, lines) == 0
 endfunction "}}}
 
-function! relab#get_sample(first, last) "{{{
+function! relab#get_sample(first, last, file) "{{{
   1DbgRELab printf('get_sample:')
-  let lines = getline(a:first, a:last)
-  if empty(lines)
+  if empty(a:file)
+    let lines = getline(a:first, a:last)
+  elseif filereadable(a:file)
+    let lines = readfile(a:file)
+  else
     echohl ErrorMsg
-    echom 'The buffer is empty!'
+    echom printf('Could not read file: %s', a:file)
     echohl Normal
     return 0
   endif
@@ -124,15 +132,15 @@ function! s:get_matches(regexp, groupnr) "{{{
     let self.current.linenr = line('.')
     let self.current.line = getline('.')
     let self.current.matches = []
-    execute printf('s/%s/\=self.get(%s)/', a:regexp, self.submatches)
+    execute printf('silent! s/%s/\=self.get(%s)/', a:regexp, self.submatches)
     call add(self.lines, self.current)
   endfunction
   if !search(a:regexp, 'cnw')
     return {}
   endif
-  %delete _
+  silent! %delete _
   call setline(1, s:info.lines)
-  g/^/call matches.run(a:regexp)
+  silent! g/^/call matches.run(a:regexp)
   return matches
 endfunction "}}}
 
@@ -144,7 +152,7 @@ function! s:set_scratch(lines) "{{{
   if winnr >= 0
     execute printf('%swincmd w', winnr)
   else
-    execute printf('botright split %s', fname)
+    execute printf('botright silent split %s', fname)
     "setlocal filetype=relab
     setlocal buftype=nofile
     setlocal noundofile
@@ -155,7 +163,7 @@ function! s:set_scratch(lines) "{{{
     let &lazyredraw = lazyredraw
     return 1
   endif
-  %delete _
+  silent %delete _
   let lines_set = setline(1, a:lines) == 0
   let &lazyredraw = lazyredraw
   return lines_set
@@ -167,12 +175,16 @@ function! relab#debug(verbose, msg) "{{{
   endif
 endfunction "}}}
 
-let relab = relab#parser#new()
+let relab = relab#parser#new() "{{{
 let s:info = get(s:, 'info', {})
-let s:info.regexp = get(s:info, 'regexp', '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$')
+let s:info.regexp = get(s:info, 'regexp',
+      \ '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$')
 let s:info.lines = get(s:info, 'lines', [
       \ 'This is some text to play with your regular expressions',
-      \ 'Some emails from http://codefool.tumblr.com/post/15288874550/list-of-valid-and-invalid-email-addresses',
+      \ 'Read :help relab',
+      \ '',
+      \ 'Some emails from http://codefool.tumblr.com/post/15288874550/'
+      \ . 'list-of-valid-and-invalid-email-addresses',
       \ 'List of Valid Email Addresses',
       \ '',
       \ 'email@example.com',

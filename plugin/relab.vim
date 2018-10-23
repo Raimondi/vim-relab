@@ -14,13 +14,13 @@ function! s:hi_colors()
 endfunction
 
 command! -nargs=* RELab call relab#set(<q-args>)
-command! -bar -range=% RELabGetSample
-      \ call relab#get_sample(<line1>, <line2>)
-command! -count -bar RELabAnalyzeLine call relab#analyze_line(<count>)
+command! -nargs=* -range=% -complete=file RELabGetSample
+      \ call relab#get_sample(<line1>, <line2>, <q-args>)
+command! -count RELabLine2Regexp call relab#line2regexp(<count>)
 command! -nargs=* RELabAnalyze call relab#show_analysis(<q-args>)
-command! -nargs=* RELabGetMatches call relab#show_matches(0, <q-args>)
+command! -nargs=* RELabMatches call relab#show_matches(0, <q-args>)
 command! -nargs=* RELabValidate call relab#show_matches(1, <q-args>)
-
+command! -bang TestRELab call relab#tests#run(<bang>0)
 if get(g:, 'relab_debug', 0)
   command! -count=1 -nargs=+ DbgRELab call relab#debug(<count>, <args>)
 else
