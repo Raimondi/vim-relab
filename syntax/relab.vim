@@ -12,10 +12,17 @@ let s:save_cpo = &cpoptions
 set cpoptions&vim
 syn case match
 
-syn region relabVMagic start=/\%1l\\v/ skip=/\\\\/ end=/\%(\\[MmV]\)\@=\|$/ oneline
-syn region relabNMagic start=/\%1l\\M/ skip=/\\\\/ end=/\%(\\[mvV]\)\@=\|$/ oneline
-syn region relabVNMagic start=/\%1l\\V/ skip=/\\\\/ end=/\%(\\[Mvm]\)\@=\|$/ oneline
-syn region relabMagic start=/\%1l^\%(\\[MvV]\)\@!\|\%1l\\m/ skip=/\\\\/ end=/\%(\\[MvV]\)\@=\|$/ oneline
+let s:is_scratch = expand('%') ==# 'scratch.relab'
+if s:is_scratch
+  syn match relabRegExp /^\%2l.*$/ 
+else
+  syn match relabRegExp /^.*$/ 
+endif
+
+syn region relabVMagic start=/\\v/ skip=/\\\\/ end=/\%(\\[MmV]\)\@=\|$/ oneline contained containedin=relabRegExp
+syn region relabNMagic start=/\\M/ skip=/\\\\/ end=/\%(\\[mvV]\)\@=\|$/ oneline contained containedin=relabRegExp
+syn region relabVNMagic start=/\\V/ skip=/\\\\/ end=/\%(\\[Mvm]\)\@=\|$/ oneline contained containedin=relabRegExp
+syn region relabMagic start=/^\%(\\[MvV]\)\@!\|\\m/ skip=/\\\\/ end=/\%(\\[MvV]\)\@=\|$/ oneline contained containedin=relabRegExp
 
 syn match relabEscaped /\\./ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabVMagic,relabOptional,relabNOptional,relabVNOptional,relabVOptional
 
@@ -120,12 +127,19 @@ syn match relabCodePointHexDigits /\x/ contained containedin=relabCodePoint
 
 syn match relabBackslash /\\\\/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabVMagic,relabOptional,relabNOptional,relabVNOptional,relabVOptional
 
-syn region relabReport start=/\%2l^/re=s-1 end=/\_^^^^^^^^^^^ .\+ ^^^^^^^^^^$/
-syn region relabReportError matchgroup=relabWarning start=/^-*\^\+$/ end=/^Error:.*/ contained containedin=relabReport
-syn match relabReportItem /^\%(\s*\S\+\)\?\s\+=>/ contained containedin=relabReport
-syn match relabReportPiece /^\s*\zs\S\+/ contained containedin=relabReportItem
-syn match relabReportArrow /=>/ contained containedin=relabReportItem
-syn match relabSampleLine /^^^^^^^^^^^ .\+ ^^^^^^^^^^$/ contained containedin=relabReport
+if s:is_scratch
+  syn region relabReport start=/\%3l^/re=s-1 end=/\%$/
+
+  syn region relabReportError matchgroup=relabWarning start=/^-*\^\+$/ end=/^Error:.*/ contained containedin=relabReport
+
+  syn match relabReportItem /^\%(\s*\S\+\)\?\s\+=>/ contained containedin=relabReport
+  syn match relabReportPiece /^\s*\zs\S\+/ contained containedin=relabReportItem
+  syn match relabReportArrow /=>/ contained containedin=relabReportItem
+
+  syn match relabMatch /^[^\-:]0:/ contained containedin=relabReport
+  syn match relabSubMatch /^[^\-:][1-9]:/ contained containedin=relabReport
+  syn match relabNoMatch /^-.*/ contained containedin=relabReport
+endif
 
 " Define the default highlighting.
 " Only used when an item doesn't have highlighting yet
@@ -159,7 +173,9 @@ hi default link relabError		Error
 hi default link relabWarning		WarningMsg
 hi default link relabReportPiece	Identifier
 hi default link relabReportArrow	Special
-hi default link relabSampleLine		Special
+hi default link relabMatch		TypType
+hi default link relabSubMatch		Constant
+hi default link relabNoMatch		WarningMsg
 
 let b:current_syntax = 'relab'
 
