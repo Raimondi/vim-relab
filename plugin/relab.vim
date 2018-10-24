@@ -29,11 +29,9 @@ endif
 
 augroup RELab
   autocmd!
-  "autocmd TextChanged,InsertLeave regexp.relab call relab#ontextchange()
+  autocmd TextChanged,InsertLeave scratch.relab call relab#ontextchange()
   autocmd BufRead,BufNewFile RELab setlocal filetype=relab buftype=nofile
         \ noundofile noswapfile
-  "autocmd BufWinLeave,WinLeave RELab if get(s:, 'relab_auto_search', 0)
-  "      \ | let @/ = getline(1) | endif
   autocmd ColorScheme * call s:hi_colors()
 
   if exists('g:relab_debug') "get(g:, 'relab_debug', 0)

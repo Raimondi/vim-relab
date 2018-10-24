@@ -1,6 +1,6 @@
 scriptencoding utf-8
 " ToDo:
-" - Live result update
+" - Highlighting
 
 function! relab#analysis(...) "{{{
   1DbgRELab printf('analysis:')
@@ -39,11 +39,12 @@ function! relab#matches(validate, ...) "{{{
   endif
   let regexp = join(parser.values(), '')
   let title = printf('RELab: %s', substitute(view, '^.', '\u&', ''))
-  let lines = [title, regexp, '']
   if !empty(parser.errors)
+    let lines = [title]
     call add(lines, regexp)
     call extend(lines, parser.lines())
   else
+    let lines = [title, regexp, '']
     let matches = s:get_matches(regexp, parser.capt_groups)
     for item in matches.lines
       if empty(item.matches) && a:validate
@@ -53,12 +54,14 @@ function! relab#matches(validate, ...) "{{{
         call extend(lines, item.matches)
       endif
     endfor
-  endif
-  if !has_key(matches, 'match_found') && !a:validate
-    call add(lines, 'No matches found')
+    if !has_key(matches, 'match_found') && !a:validate
+      call add(lines, 'No matches found')
+    endif
   endif
   silent! %delete _
-  return setline(1, lines) == 0
+  undojoin
+  call setline(1, lines)
+  undojoin
 endfunction "}}}
 
 function! relab#set(...) "{{{
@@ -111,16 +114,20 @@ function! s:set_scratch(lines) "{{{
     execute printf('botright silent split %s', fname)
     "setlocal filetype=relab
     setlocal buftype=nofile
-    setlocal noundofile
+    "setlocal noundofile
     setlocal noswapfile
-    setlocal undolevels=-1
+    "setlocal undolevels=-1
   endif
   if bufname('%') !=# fname
     let &lazyredraw = lazyredraw
     return 1
   endif
   silent %delete _
+  undojoin
   let lines_set = setline(1, a:lines) == 0
+  if lines_set
+    undojoin
+  endif
   let &lazyredraw = lazyredraw
   return lines_set
 endfunction "}}}
@@ -145,7 +152,9 @@ function! s:get_matches(regexp, groupnr) "{{{
     call add(self.lines, self.current)
   endfunction
   silent! %delete _
+  undojoin
   call setline(1, s:info.lines)
+  undojoin
   silent! g/^/call matches.run(a:regexp)
   return matches
 endfunction "}}}
@@ -179,6 +188,17 @@ function! s:refresh() "{{{
   else
     return
   endif
+endfunction "}}}
+
+function! relab#ontextchange() "{{{
+  if line('$') < 2
+    return
+  endif
+  let curpos = getcurpos()
+  let regexp = getline(2)
+  call s:update_info({'regexp': regexp})
+  call s:refresh()
+  call setpos('.', curpos)
 endfunction "}}}
 
 let relab = relab#parser#new() "{{{
