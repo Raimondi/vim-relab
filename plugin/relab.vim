@@ -1,17 +1,5 @@
-function! s:hi_colors()
-  " TODO find nicer colors
-  hi def relabGrpMatchAll guibg=#000000 guifg=#dddddd ctermbg=0   ctermfg=252
-  hi def relabGrpMatch0   guibg=#804000 guifg=#dddddd ctermbg=94  ctermfg=252
-  hi def relabGrpMatch1   guibg=#800040 guifg=#dddddd ctermbg=89  ctermfg=252
-  hi def relabGrpMatch2   guibg=#008040 guifg=#dddddd ctermbg=29  ctermfg=252
-  hi def relabGrpMatch3   guibg=#400080 guifg=#dddddd ctermbg=54  ctermfg=252
-  hi def relabGrpMatch4   guibg=#0080a0 guifg=#dddddd ctermbg=31  ctermfg=252
-  hi def relabGrpMatch5   guibg=#a000a0 guifg=#dddddd ctermbg=127 ctermfg=252
-  hi def relabGrpMatch6   guibg=#b09000 guifg=#dddddd ctermbg=136 ctermfg=252
-  hi def relabGrpMatch7   guibg=#008000 guifg=#dddddd ctermbg=2   ctermfg=252
-  hi def relabGrpMatch8   guibg=#000080 guifg=#dddddd ctermbg=4   ctermfg=252
-  hi def relabGrpMatch9   guibg=#800000 guifg=#dddddd ctermbg=1   ctermfg=252
-endfunction
+let g:relab_filepath = get(g:, 'relab_filepath',
+      \ printf('%s/data.txt', expand('<sfile>:p:h:h')))
 
 command! -nargs=* RELab call relab#set(<q-args>)
 command! -nargs=* -range=% -complete=file RELabGetSample
@@ -21,7 +9,7 @@ command! -nargs=* RELabAnalyze call relab#analysis(<q-args>)
 command! -nargs=* RELabMatches call relab#matches(0, <q-args>)
 command! -nargs=* RELabValidate call relab#matches(1, <q-args>)
 command! -bang TestRELab call relab#tests#run(<bang>0)
-if get(g:, 'relab_debug', 0)
+if exists('g:relab_debug')
   command! -count=1 -nargs=+ DbgRELab call relab#debug(<count>, <args>)
 else
   command! -count=1 -nargs=+ DbgRELab :
@@ -29,7 +17,8 @@ endif
 
 augroup RELab
   autocmd!
-  autocmd TextChanged,InsertLeave scratch.relab call relab#ontextchange()
+  autocmd TextChanged scratch.relab echom 'Changed!' | call relab#ontextchange()
+  autocmd InsertLeave scratch.relab echom 'InsertLeave!' | call relab#ontextchange()
   autocmd BufRead,BufNewFile RELab setlocal filetype=relab buftype=nofile
         \ noundofile noswapfile
   autocmd ColorScheme * call s:hi_colors()
@@ -42,5 +31,3 @@ augroup RELab
           \ | call relab#tests#run() | let relab = relab#parser#new()
   endif
 augroup END
-
-call s:hi_colors()

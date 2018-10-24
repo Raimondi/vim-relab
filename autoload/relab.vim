@@ -3,7 +3,7 @@ scriptencoding utf-8
 " - Highlighting
 
 function! relab#analysis(...) "{{{
-  1DbgRELab printf('analysis:')
+  1DbgRELab printf('analysis: %s', a:000)
   let view = 'analysis'
   let regexp = get(a:, 1, '')
   let regexp = !empty(regexp) ? regexp : get(s:info, 'regexp', '')
@@ -13,39 +13,34 @@ function! relab#analysis(...) "{{{
     echohl Normal
     return 0
   endif
-  call s:update_info({'regexp': regexp, 'view': view})
-  let parser = relab#parser#new()
-  call parser.parse(regexp)
+  let info = s:update_info({'regexp': regexp, 'view': view})
   let title = printf('RELab: %s', substitute(view, '^.', '\u&', ''))
-  let lines = [title, regexp, '']
-  let lines += parser.lines()
+  let lines = [title, regexp]
+  let lines += info.parser.lines()
   return s:set_scratch(lines)
 endfunction "}}}
 
 function! relab#matches(validate, ...) "{{{
-  1DbgRELab printf('show_matches:')
   let view = a:validate ? 'validate' : 'matches'
+  1DbgRELab printf('show_matches: %s', view)
   let regexp = get(a:, 1, '')
-  let regexp = !empty(regexp) ? regexp : get(s:info, 'regexp', '')
-  let info = {'view': 'matches'}
+  let info = {'view': view}
   if !empty(regexp)
     let info.regexp = regexp
   endif
-  call s:update_info(info)
-  let parser = relab#parser#new()
-  call parser.parse(regexp)
+  let info = s:update_info(info)
   if !s:set_scratch(s:info.lines)
     return
   endif
-  let regexp = join(parser.values(), '')
+  let regexp = join(info.parser.values(), '')
   let title = printf('RELab: %s', substitute(view, '^.', '\u&', ''))
-  if !empty(parser.errors)
+  if !empty(info.parser.errors)
     let lines = [title]
     call add(lines, regexp)
-    call extend(lines, parser.lines())
+    call extend(lines, info.parser.lines())
   else
     let lines = [title, regexp, '']
-    let matches = s:get_matches(regexp, parser.capt_groups)
+    let matches = s:get_matches(regexp, info.parser.capt_groups)
     for item in matches.lines
       if empty(item.matches) && a:validate
         call add(lines, printf('-:%s', item.line))
@@ -96,27 +91,28 @@ function! relab#line2regexp(linenr) "{{{
   let regexp = !empty(regexp) ? regexp : get(s:info, 'regexp', '')
   let linenr = a:linenr > 0 ? a:linenr : '.'
   let regexp = getline(linenr)
-  let s:info.regexp = regexp
-  let parser = relab#parser#new()
-  call parser.parse(regexp)
   call s:update_info({'regexp': regexp})
   return s:refresh()
 endfunction "}}}
 
 function! s:set_scratch(lines) "{{{
+  1DbgRELab printf('set_scratch:')
   let lazyredraw = &lazyredraw
   set lazyredraw
   let fname = 'scratch.relab'
   let winnr = bufwinnr(fname)
-  if winnr >= 0
+  if winnr == bufwinnr('%')
+    " nothing to do
+  elseif winnr >= 0
     execute printf('%swincmd w', winnr)
   else
     execute printf('botright silent split %s', fname)
-    "setlocal filetype=relab
-    setlocal buftype=nofile
-    "setlocal noundofile
-    setlocal noswapfile
-    "setlocal undolevels=-1
+    if empty(&buftype)
+      setlocal buftype=nofile
+      setlocal noundofile
+      setlocal noswapfile
+      "setlocal undolevels=-1
+    endif
   endif
   if bufname('%') !=# fname
     let &lazyredraw = lazyredraw
@@ -140,7 +136,7 @@ function! s:get_matches(regexp, groupnr) "{{{
         \ {key, val -> 'submatch('.val.')'}), ',')
   function matches.get(...)
     let self.current.matches = map(copy(a:000),
-          \ {key, val -> printf('%s%s: %s', (key ? '  ' : ''), key, val)})
+          \ {key, val -> printf('\%s: %s', key, val)})
     return get(a:, 1, '')
   endfunction
   function matches.run(regexp)
@@ -166,18 +162,92 @@ function! relab#debug(verbose, msg) "{{{
 endfunction "}}}
 
 function! s:update_info(dict) "{{{
+  1DbgRELab printf('update_info: %s', a:dict)
+  let file = get(g:, 'relab_filepath', '')
+  if !exists('s:info') "{{{
+    let data = filereadable(file) ? readfile(file) : []
+    if len(data) < 2
+      let s:info = get(s:, 'info', {})
+      let s:info.view = 'validate'
+      let s:info.regexp = get(s:info, 'regexp',
+            \ '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$')
+      let s:info.lines = get(s:info, 'lines', [
+            \ 'This is some text to play with your regular expressions',
+            \ 'Read :help relab',
+            \ '',
+            \ 'Some emails from http://codefool.tumblr.com/post/15288874550/'
+            \ . 'list-of-valid-and-invalid-email-addresses',
+            \ 'List of Valid Email Addresses',
+            \ '',
+            \ 'email@example.com',
+            \ 'firstname.lastname@example.com',
+            \ 'email@subdomain.example.com',
+            \ 'firstname+lastname@example.com',
+            \ 'email@123.123.123.123',
+            \ 'email@[123.123.123.123]',
+            \ '“email”@example.com',
+            \ '1234567890@example.com',
+            \ 'email@example-one.com',
+            \ '_______@example.com',
+            \ 'email@example.name',
+            \ 'email@example.museum',
+            \ 'email@example.co.jp',
+            \ 'firstname-lastname@example.com',
+            \ '',
+            \ 'List of Strange Valid Email Addresses',
+            \ '',
+            \ 'much.“more\ unusual”@example.com',
+            \ 'very.unusual.“@”.unusual.com@example.com',
+            \ 'very.“(),:;<>[]”.VERY.“very@\\ "very”.unusual@lol.domain.com',
+            \ '',
+            \ 'List of Invalid Email Addresses',
+            \ '',
+            \ 'plainaddress',
+            \ '#@%^%#$@#$@#.com',
+            \ '@example.com',
+            \ 'Joe Smith <email@example.com>',
+            \ 'email.example.com',
+            \ 'email@example@example.com',
+            \ '.email@example.com',
+            \ 'email.@example.com',
+            \ 'email..email@example.com',
+            \ 'あいうえお@example.com',
+            \ 'email@example.com (Joe Smith)',
+            \ 'email@example',
+            \ 'email@-example.com',
+            \ 'email@example.web',
+            \ 'email@111.222.333.44444',
+            \ 'email@example..com',
+            \ 'Abc..123@example.com',
+            \ '',
+            \ 'List of Strange Invalid Email Addresses',
+            \ '',
+            \ '“(),:;<>[\]@example.com',
+            \ 'just"not"right@example.com',
+            \ 'this\ is"really"not\allowed@example.com',
+            \ ])
+    else
+      let s:info = {}
+      let [s:info.view, s:info.regexp; s:info.lines] = data
+    endif
+  endif "}}}
   let info = extend(copy(a:dict), s:info, 'keep')
+  DbgRELab printf('Updating info and saving it into: %s', file)
+  if !has_key(s:info, 'parser') || info.regexp !=# s:info.regexp
+    let info.parser = relab#parser#new()
+    call info.parser.parse(info.regexp)
+  endif
   if info == s:info
     return s:info
   endif
-  DbgRELab 'Updating info and saving it to: ' . s:file
   let s:info = info
   let data = [info.view, info.regexp] + info.lines
-  call writefile(data, s:file, 's')
+  "call writefile(data, file, 's')
   return s:info
 endfunction "}}}
 
 function! s:refresh() "{{{
+  1DbgRELab printf('refresh')
   let info = s:update_info({})
   if info.view ==# 'validate'
     return relab#matches(1, info.regexp)
@@ -191,82 +261,17 @@ function! s:refresh() "{{{
 endfunction "}}}
 
 function! relab#ontextchange() "{{{
+  1DbgRELab printf('ontextchange')
   if line('$') < 2
     return
   endif
   let curpos = getcurpos()
   let regexp = getline(2)
-  call s:update_info({'regexp': regexp})
-  call s:refresh()
-  call setpos('.', curpos)
+  let old_regexp = get(get(s:, 'info', {}), 'regexp', '')
+  let info = s:update_info({'regexp': regexp})
+  if info.regexp !=# old_regexp
+    1DbgRELab printf('ontextchange: change on regexp')
+    call s:refresh()
+    call setpos('.', curpos)
+  endif
 endfunction "}}}
-
-let relab = relab#parser#new() "{{{
-let s:file = get(g:, 'relab_path',
-      \ printf('%s/data.txt', expand('<sfile>:p:h:h')))
-let s:data = filereadable(s:file) ? readfile(s:file) : []
-if exists('s:info') || len(s:data) < 2
-  let s:info = get(s:, 'info', {})
-  let s:info.view = 'validate'
-  let s:info.regexp = get(s:info, 'regexp',
-        \ '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$')
-  let s:info.lines = get(s:info, 'lines', [
-        \ 'This is some text to play with your regular expressions',
-        \ 'Read :help relab',
-        \ '',
-        \ 'Some emails from http://codefool.tumblr.com/post/15288874550/'
-        \ . 'list-of-valid-and-invalid-email-addresses',
-        \ 'List of Valid Email Addresses',
-        \ '',
-        \ 'email@example.com',
-        \ 'firstname.lastname@example.com',
-        \ 'email@subdomain.example.com',
-        \ 'firstname+lastname@example.com',
-        \ 'email@123.123.123.123',
-        \ 'email@[123.123.123.123]',
-        \ '“email”@example.com',
-        \ '1234567890@example.com',
-        \ 'email@example-one.com',
-        \ '_______@example.com',
-        \ 'email@example.name',
-        \ 'email@example.museum',
-        \ 'email@example.co.jp',
-        \ 'firstname-lastname@example.com',
-        \ '',
-        \ 'List of Strange Valid Email Addresses',
-        \ '',
-        \ 'much.“more\ unusual”@example.com',
-        \ 'very.unusual.“@”.unusual.com@example.com',
-        \ 'very.“(),:;<>[]”.VERY.“very@\\ "very”.unusual@strange.example.com',
-        \ '',
-        \ 'List of Invalid Email Addresses',
-        \ '',
-        \ 'plainaddress',
-        \ '#@%^%#$@#$@#.com',
-        \ '@example.com',
-        \ 'Joe Smith <email@example.com>',
-        \ 'email.example.com',
-        \ 'email@example@example.com',
-        \ '.email@example.com',
-        \ 'email.@example.com',
-        \ 'email..email@example.com',
-        \ 'あいうえお@example.com',
-        \ 'email@example.com (Joe Smith)',
-        \ 'email@example',
-        \ 'email@-example.com',
-        \ 'email@example.web',
-        \ 'email@111.222.333.44444',
-        \ 'email@example..com',
-        \ 'Abc..123@example.com',
-        \ '',
-        \ 'List of Strange Invalid Email Addresses',
-        \ '',
-        \ '“(),:;<>[\]@example.com',
-        \ 'just"not"right@example.com',
-        \ 'this\ is"really"not\allowed@example.com',
-        \ ])
-else
-  let s:info = {}
-  let [s:info.view, s:info.regexp; s:info.lines] = s:data
-endif
-unlet! s:data
