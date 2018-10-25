@@ -6,6 +6,7 @@ command! -nargs=* -range=% -complete=file RELabGetSample
       \ call relab#get_sample(<line1>, <line2>, <q-args>)
 command! -count RELabLine2Regexp call relab#line2regexp(<count>)
 command! -nargs=* RELabAnalyze call relab#analysis(<q-args>)
+command! RELabEditSample call relab#sample()
 command! -nargs=* RELabMatches call relab#matches(0, <q-args>)
 command! -nargs=* RELabValidate call relab#matches(1, <q-args>)
 command! -bang TestRELab call relab#tests#run(<bang>0)
