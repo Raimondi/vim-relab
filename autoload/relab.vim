@@ -1,6 +1,4 @@
 scriptencoding utf-8
-" ToDo:
-" - Highlighting
 
 function! relab#analysis(...) "{{{
   1DbgRELab printf('analysis: %s', a:000)
@@ -14,18 +12,13 @@ function! relab#analysis(...) "{{{
     echohl Normal
     return 0
   endif
-  let info = s:update_info({'regexp': regexp, 'view': view})
-  let title = printf('RELab: %s', substitute(view, '^.', '\u&', ''))
-  let lines = [title, regexp]
-  let lines += info.parser.lines()
-  return s:set_scratch(lines)
+  return s:update_info({'regexp': regexp, 'view': view})
 endfunction "}}}
 
 function! relab#sample() "{{{
   1DbgRELab printf('analysis: %s', a:000)
   let view = 'sample'
-  let info = s:update_info({'view': view})
-  return s:set_scratch(info.lines)
+  return s:update_info({'view': view})
 endfunction "}}}
 
 function! relab#matches(validate, ...) "{{{
@@ -36,34 +29,7 @@ function! relab#matches(validate, ...) "{{{
   if !empty(regexp)
     let info.regexp = regexp
   endif
-  let info = s:update_info(info)
-  if !s:set_scratch(s:info.lines)
-    return
-  endif
-  let title = printf('RELab: %s', substitute(view, '^.', '\u&', ''))
-  if !empty(info.parser.errors)
-    let lines = [title]
-    call add(lines, info.regexp)
-    call extend(lines, info.parser.lines())
-  else
-    let lines = [title, info.regexp, '']
-    let matches = s:get_matches()
-    for item in matches.lines
-      if empty(item.matches) && a:validate
-        call add(lines, printf('-:%s', item.line))
-      else
-        let matches.match_found = 1
-        call extend(lines, item.matches)
-      endif
-    endfor
-    if !has_key(matches, 'match_found') && !a:validate
-      call add(lines, 'No matches found')
-    endif
-  endif
-  silent! %delete _
-  undojoin
-  call setline(1, lines)
-  undojoin
+  return s:update_info(info)
 endfunction "}}}
 
 function! relab#set(...) "{{{
@@ -71,9 +37,8 @@ function! relab#set(...) "{{{
   let regexp = get(a:, 1, '')
   let regexp = !empty(regexp) ? regexp : get(s:info, 'regexp', '')
   if !empty(regexp)
-    call s:update_info({'regexp': regexp})
+    return s:update_info({'regexp': regexp})
   endif
-  return s:refresh()
 endfunction "}}}
 
 function! relab#get_sample(first, last, file) "{{{
@@ -88,7 +53,7 @@ function! relab#get_sample(first, last, file) "{{{
     echohl Normal
     return 0
   endif
-  let info = s:update_info({'lines': lines})
+  call s:update_info({'lines': lines})
   return relab#sample()
 endfunction "}}}
 
@@ -98,8 +63,7 @@ function! relab#line2regexp(linenr) "{{{
   let regexp = !empty(regexp) ? regexp : get(s:info, 'regexp', '')
   let linenr = a:linenr > 0 ? a:linenr : '.'
   let regexp = getline(linenr)
-  call s:update_info({'regexp': regexp})
-  return s:refresh()
+  return s:update_info({'regexp': regexp})
 endfunction "}}}
 
 function! s:set_scratch(lines) "{{{
@@ -142,7 +106,7 @@ function! s:get_matches() "{{{
   let matches.submatches = join(map(range(s:info.parser.capt_groups + 1),
         \ {key, val -> 'submatch('.val.')'}), ',')
   function matches.get(...)
-    let self.current.matches = map(copy(a:000),
+    let self.current.matches += map(copy(a:000),
           \ {key, val -> printf('\%s: %s', key, val)})
     return get(a:, 1, '')
   endfunction
@@ -151,14 +115,11 @@ function! s:get_matches() "{{{
     let self.current.linenr = line('.')
     let self.current.line = getline('.')
     let self.current.matches = []
-    execute printf('silent! s/%s/\=self.get(%s)/', a:regexp, self.submatches)
+    execute printf('silent! s/%s/\=self.get(%s)/g', a:regexp, self.submatches)
     call add(self.lines, self.current)
   endfunction
-  silent! %delete _
-  undojoin
-  call setline(1, s:info.lines)
-  undojoin
-  silent! g/^/call matches.run(s:info.regexp)
+  call s:set_scratch(s:info.lines)
+  silent! g/^/call matches.run(escape(s:info.regexp, '/'))
   return matches
 endfunction "}}}
 
@@ -249,23 +210,45 @@ function! s:update_info(dict) "{{{
   endif
   let s:info = info
   let data = [info.view, info.regexp] + info.lines
-  "call writefile(data, file, 's')
-  return s:info
+  call writefile(data, file, 's')
+  return s:refresh()
 endfunction "}}}
 
 function! s:refresh() "{{{
   1DbgRELab printf('refresh')
   let info = s:update_info({})
-  if info.view ==# 'validate'
-    return relab#matches(1, info.regexp)
-  elseif info.view ==# 'matches'
-    return relab#matches(0, info.regexp)
+  if info.view ==# 'validate' || info.view ==# 'matches'
+    let title = printf('RELab: %s', substitute(info.view, '^.', '\u&', ''))
+    if !empty(info.parser.errors)
+      let lines = [title]
+      call add(lines, info.regexp)
+      call extend(lines, info.parser.lines())
+    else
+      let lines = [title, info.regexp, '']
+      let matches = s:get_matches()
+      for item in matches.lines
+        if empty(item.matches) && info.view ==# 'validate'
+          call add(lines, printf('-:%s', item.line))
+        else
+          let matches.match_found = 1
+          call extend(lines, item.matches)
+        endif
+      endfor
+      if !has_key(matches, 'match_found') && info.view ==# 'matches'
+        call add(lines, 'No matches found')
+      endif
+    endif
+    return s:set_scratch(lines)
   elseif info.view ==# 'analysis'
-    return relab#analysis(info.regexp)
+    let title = printf('RELab: %s', substitute(info.view, '^.', '\u&', ''))
+    let lines = [title, info.regexp]
+    let lines += info.parser.lines()
+    return s:set_scratch(lines)
   elseif info.view ==# 'sample'
-    return relab#sample()
+    let info = s:update_info({'view': info.view})
+    return s:set_scratch(info.lines)
   else
-    return
+    return 0
   endif
 endfunction "}}}
 
@@ -273,19 +256,13 @@ function! relab#ontextchange() "{{{
   1DbgRELab printf('ontextchange')
   if s:info.view ==# 'sample'
     let lines = getline(1, '$')
-    let info = s:update_info({'lines': lines})
-  else
-    if line('$') < 2
-      return
-    endif
-    let curpos = getcurpos()
-    let regexp = getline(2)
-    let old_regexp = get(get(s:, 'info', {}), 'regexp', '')
-    let info = s:update_info({'regexp': regexp})
-    if info.regexp !=# old_regexp
-      1DbgRELab printf('ontextchange: change on regexp')
-      call s:refresh()
-      call setpos('.', curpos)
-    endif
+    return s:update_info({'lines': lines})
   endif
+  if line('$') < 2
+    return
+  endif
+  let curpos = getcurpos()
+  let regexp = getline(2)
+  call s:update_info({'regexp': regexp})
+  return setpos('.', curpos)
 endfunction "}}}
