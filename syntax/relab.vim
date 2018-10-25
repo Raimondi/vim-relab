@@ -2,8 +2,8 @@
 " Language:	relab
 " Maintainer:	Israel Chauca F. <israelchauca@gmail.com>
 
-" Quit when a (custom) syntax file was already loaded
-if exists('b:current_syntax')
+" Quit when a (custom) syntax file was already loaded or not needed
+if exists('b:current_syntax') || g:relab_view ==# 'sample'
   finish
 endif
 
@@ -173,7 +173,7 @@ hi default link relabError		Error
 hi default link relabWarning		WarningMsg
 hi default link relabReportPiece	Identifier
 hi default link relabReportArrow	Special
-hi default link relabMatch		TypType
+hi default link relabMatch		Type
 hi default link relabSubMatch		Constant
 hi default link relabNoMatch		WarningMsg
 

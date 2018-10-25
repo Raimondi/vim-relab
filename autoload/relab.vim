@@ -209,6 +209,7 @@ function! s:update_info(dict) "{{{
     return s:info
   endif
   let s:info = info
+  let g:relab_view = s:info.view
   let data = [info.view, info.regexp] + info.lines
   call writefile(data, file, 's')
   return s:refresh()
@@ -216,37 +217,38 @@ endfunction "}}}
 
 function! s:refresh() "{{{
   1DbgRELab printf('refresh')
-  let info = s:update_info({})
-  if info.view ==# 'validate' || info.view ==# 'matches'
-    let title = printf('RELab: %s', substitute(info.view, '^.', '\u&', ''))
-    if !empty(info.parser.errors)
+  runtime! syntax/relab.vim
+  if s:info.view ==# 'validate' || s:info.view ==# 'matches'
+    let title = printf('RELab: %s', substitute(s:info.view, '^.', '\u&', ''))
+    if !empty(s:info.parser.errors)
       let lines = [title]
-      call add(lines, info.regexp)
-      call extend(lines, info.parser.lines())
+      call add(lines, s:info.regexp)
+      call extend(lines, s:info.parser.lines())
     else
-      let lines = [title, info.regexp, '']
+      let lines = [title, s:info.regexp, '']
       let matches = s:get_matches()
       for item in matches.lines
-        if empty(item.matches) && info.view ==# 'validate'
+        if empty(item.matches) && s:info.view ==# 'validate'
           call add(lines, printf('-:%s', item.line))
         else
           let matches.match_found = 1
           call extend(lines, item.matches)
         endif
       endfor
-      if !has_key(matches, 'match_found') && info.view ==# 'matches'
+      if !has_key(matches, 'match_found') && s:info.view ==# 'matches'
         call add(lines, 'No matches found')
       endif
     endif
     return s:set_scratch(lines)
-  elseif info.view ==# 'analysis'
-    let title = printf('RELab: %s', substitute(info.view, '^.', '\u&', ''))
-    let lines = [title, info.regexp]
-    let lines += info.parser.lines()
+  elseif s:info.view ==# 'analysis'
+    let title = printf('RELab: %s', substitute(s:info.view, '^.', '\u&', ''))
+    let lines = [title, s:info.regexp]
+    let lines += s:info.parser.lines()
     return s:set_scratch(lines)
-  elseif info.view ==# 'sample'
-    let info = s:update_info({'view': info.view})
-    return s:set_scratch(info.lines)
+  elseif s:info.view ==# 'sample'
+    syntax clear
+    let s:info = s:update_info({'view': s:info.view})
+    return s:set_scratch(s:info.lines)
   else
     return 0
   endif
