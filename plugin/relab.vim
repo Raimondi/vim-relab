@@ -10,16 +10,30 @@ command! RELabEditSample call relab#sample()
 command! -nargs=* RELabMatches call relab#matches(0, <q-args>)
 command! -nargs=* RELabValidate call relab#matches(1, <q-args>)
 command! -bang TestRELab call relab#tests#run(<bang>0)
+
 if exists('g:relab_debug')
-  command! -count=1 -nargs=+ DbgRELab call relab#debug(<count>, <args>)
+  function! s:debug(force, verbose, msg) "{{{
+    let debug = get(g:, 'relab_debug', 0)
+    let tags = debug > 9 && a:verbose > 9
+          \ ? split(debug[0:-2], '\zs') : range(10)
+    let debug = debug[-1:]
+    let verbose = a:verbose % 10
+    let tag = a:verbose > 9 ? a:verbose[0] : 0
+    if a:force || verbose <= debug && index(tags, tag) >= 0
+      echom printf('%sRELab: %s', a:verbose, a:msg)
+    endif
+  endfunction "}}}
+
+  command! -count=1 -nargs=+ -bang DebugRELab
+        \ call s:debug(<bang>0, <count>, <args>)
 else
-  command! -count=1 -nargs=+ DbgRELab :
+  command! -count=1 -nargs=+ -bang DebugRELab :
 endif
 
 augroup RELab
   autocmd!
-  autocmd TextChanged scratch.relab echom 'Changed!' | call relab#ontextchange()
-  autocmd InsertLeave scratch.relab echom 'InsertLeave!' | call relab#ontextchange()
+  autocmd TextChanged scratch.relab call relab#ontextchange()
+  autocmd InsertLeave scratch.relab call relab#ontextchange()
   autocmd BufRead,BufNewFile RELab setlocal filetype=relab buftype=nofile
         \ noundofile noswapfile
   autocmd ColorScheme * call s:hi_colors()

@@ -1,154 +1,190 @@
 function! s:is_magic() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~? '\m^\\[mv]$'
 endfunction "}}}
 
 function! s:is_branch() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic ==# '\|' || self.magic ==# '\&'
 endfunction "}}}
 
 function! s:starts_group() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic ==# '[' || self.magic =~# '\m^\\%\?($'
         \ || self.magic ==# '\%['
 endfunction "}}}
 
 function! s:starts_capt_group() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic ==# '\('
 endfunction "}}}
 
 function! s:starts_non_capt_group() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic ==# '\%('
 endfunction "}}}
 
 function! s:starts_opt_group() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic ==# '\%['
 endfunction "}}}
 
 function! s:starts_collection() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic ==# '['
 endfunction "}}}
 
 function! s:ends_group() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic ==# ']' || self.magic ==# '\)'
 endfunction "}}}
 
 function! s:ends_capt_group() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return get(self.get_left_pair(), 'magic', '') ==# '\('
         \ && self.magic ==# '\)'
 endfunction "}}}
 
 function! s:ends_non_capt_group() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return get(self.get_left_pair(), 'magic', '') ==# '\%('
         \ && self.magic ==# '\)'
 endfunction "}}}
 
 function! s:ends_opt_group() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return get(self.get_left_pair(), 'magic', '') ==# '\%['
         \ && self.magic ==# ']'
 endfunction "}}}
 
 function! s:ends_collection() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return get(self.get_left_pair(), 'magic', '') ==# '['
         \ && self.magic ==# ']'
 endfunction "}}}
 
 function! s:item_or_eol() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~# '\m^\\_[$^.iIkKfFpPsSdDxXoOwWhHaAlLuU]$'
 endfunction "}}}
 
 function! s:is_engine() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.id ==# '\%#='
 endfunction "}}}
 
 function! s:is_multi() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~# '\m^\%(\\[?=+]\|\*\)$\|^\\{'
 endfunction "}}}
 
 function! s:is_multi_bracket() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~# '\m^\\{'
 endfunction "}}}
 
 function! s:is_valid_bracket() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~# '\m^\\{-\?\d*,\?\d*\\\?}$'
 endfunction "}}}
 
 function! s:is_look_around() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.id =~# '\m^\\@\%([!=>]\|\d*<[!=]\)$'
 endfunction "}}}
 
 function! s:is_group() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return index(['\(', '\%(', '\)', '\|', '\&'], self.id) >= 0
 endfunction "}}}
 
 function! s:is_invalid_in_optional() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.is_multi() || self.is_group() || self.is_look_around()
         \ || self.starts_opt_group()
 endfunction "}}}
 
 function! s:is_back_reference() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.id =~# '\m^\\[1-9]$'
 endfunction "}}}
 
 function! s:starts_with_at() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~# '\m^\\@'
 endfunction "}}}
 
 function! s:is_boundary() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic ==# '\zs' || self.magic ==# '\ze'
 endfunction "}}}
 
 function! s:has_underscore() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~# '\m^\\_.'
 endfunction "}}}
 
 function! s:is_valid_underscore() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~# '\m^\\_[iIkKfFpPsSdDxXoOwWhHaAlLuU^$[.]$'
 endfunction "}}}
 
 function! s:is_coll_range() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~#
         \ '\m^\%(\\[-^\]\\ebnrt]\|[^\\]\)-\%(\\[-^\]\\ebnrt]\|[^\\]\)$'
 endfunction "}}}
 
 function! s:is_coll_range_id() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.id ==? 'a-b'
 endfunction "}}}
 
 function! s:like_code_point() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~# '\m^\\%[douUx]'
 endfunction "}}}
 
 function! s:is_code_point() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~#
         \ '\m^\\%\(d\d\+\|o0\?\o\{1,3}\|x\x\{1,2}\|u\x\{1,4}\|U\x\{1,8}\)$'
 endfunction "}}}
 
 function! s:is_invalid_percent() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~# '\m^\\%[^V#^$C]\?$'
 endfunction "}}}
 
 function! s:is_mark() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~# '\m^\\%[<>]\?''[a-zA-Z0-9''[\]<>]$'
 endfunction "}}}
 
 function! s:is_lcv() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~# '\m^\\%[<>]\?\d*[clv]'
 endfunction "}}}
 
 function! s:is_invalid_z() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic =~# '\m^\\z[^se]\?$'
 endfunction "}}}
 
 function! s:is_case() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return self.magic ==? '\c'
 endfunction "}}}
 
 function! s:follows_nothing() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   return empty(self.previous) || (self.previous.is_branch()
         \ && !get(self.previous.children, -1, self.previous).magic ==# '\)')
         \ || self.previous.is_look_around()
 endfunction "}}}
 
 function! s:get_left_pair() dict "{{{
+  34DebugRELab printf('%s:', expand('<sfile>'))
   let pairs = {}
   let pairs['\('] = '\)'
   let pairs['\%('] = '\)'
@@ -172,6 +208,8 @@ function! s:is_paired() dict "{{{
 endfunction "}}}
 
 function! s:new(token, magicness, ignorecase, magic, pos, id) dict "{{{
+  31DebugRELab printf('%s:', expand('<sfile>'))
+  31DebugRELab printf('args: %s', a:)
   let n = copy(self)
   let n.is_error = 0
   let n.error = []
@@ -192,11 +230,13 @@ function! s:new(token, magicness, ignorecase, magic, pos, id) dict "{{{
     let n.previous.next = n
   endif
   call add(self.children, n)
-  DbgRELab  printf('new: node: %s', filter(copy(n), 'type(v:val) <= 1'))
+  32DebugRELab  printf('new: node: %s', filter(copy(n), 'type(v:val) <= 1'))
   return n
 endfunction "}}}
 
 function! relab#parser#node#new() "{{{
+  31DebugRELab printf('%s:', expand('<sfile>'))
+  31DebugRELab printf('args: %s', a:)
   let node = {}
   let node.value = 'root'
   let node.magic = 'root'

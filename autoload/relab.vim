@@ -1,7 +1,8 @@
 scriptencoding utf-8
 
 function! relab#analysis(...) "{{{
-  1DbgRELab printf('analysis: %s', a:000)
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
   let view = 'analysis'
   let regexp = get(a:, 1, '')
   let regexp = !empty(regexp) ? regexp :
@@ -16,14 +17,16 @@ function! relab#analysis(...) "{{{
 endfunction "}}}
 
 function! relab#sample() "{{{
-  1DbgRELab printf('analysis: %s', a:000)
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
   let view = 'sample'
   return s:update_info({'view': view})
 endfunction "}}}
 
 function! relab#matches(validate, ...) "{{{
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
   let view = a:validate ? 'validate' : 'matches'
-  1DbgRELab printf('show_matches: %s', view)
   let regexp = get(a:, 1, '')
   let info = {'view': view}
   if !empty(regexp)
@@ -33,7 +36,8 @@ function! relab#matches(validate, ...) "{{{
 endfunction "}}}
 
 function! relab#set(...) "{{{
-  1DbgRELab printf('set:')
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
   let regexp = get(a:, 1, '')
   let regexp = !empty(regexp) ? regexp : get(s:info, 'regexp', '')
   if !empty(regexp)
@@ -42,7 +46,8 @@ function! relab#set(...) "{{{
 endfunction "}}}
 
 function! relab#get_sample(first, last, file) "{{{
-  1DbgRELab printf('get_sample:')
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
   if empty(a:file)
     let lines = getline(a:first, a:last)
   elseif filereadable(a:file)
@@ -58,7 +63,8 @@ function! relab#get_sample(first, last, file) "{{{
 endfunction "}}}
 
 function! relab#line2regexp(linenr) "{{{
-  1DbgRELab printf('line2regexp:')
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
   let regexp = get(a:, 1, '')
   let regexp = !empty(regexp) ? regexp : get(s:info, 'regexp', '')
   let linenr = a:linenr > 0 ? a:linenr : '.'
@@ -67,7 +73,8 @@ function! relab#line2regexp(linenr) "{{{
 endfunction "}}}
 
 function! s:set_scratch(lines) "{{{
-  1DbgRELab printf('set_scratch:')
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
   let lazyredraw = &lazyredraw
   set lazyredraw
   let fname = 'scratch.relab'
@@ -100,7 +107,8 @@ function! s:set_scratch(lines) "{{{
 endfunction "}}}
 
 function! s:get_matches() "{{{
-  1DbgRELab printf('get_matches:')
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
   let matches = {}
   let matches.lines = []
   let matches.submatches = join(map(range(s:info.parser.capt_groups + 1),
@@ -123,14 +131,9 @@ function! s:get_matches() "{{{
   return matches
 endfunction "}}}
 
-function! relab#debug(verbose, msg) "{{{
-  if a:verbose <= get(g:, 'relab_debug', 0)
-    echom printf('%sRELab: %s', a:verbose, a:msg)
-  endif
-endfunction "}}}
-
 function! s:update_info(dict) "{{{
-  1DbgRELab printf('update_info: %s', a:dict)
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
   let file = get(g:, 'relab_filepath', '')
   if !exists('s:info') "{{{
     let data = filereadable(file) ? readfile(file) : []
@@ -200,7 +203,7 @@ function! s:update_info(dict) "{{{
     endif
   endif "}}}
   let info = extend(copy(a:dict), s:info, 'keep')
-  DbgRELab printf('Updating info and saving it into: %s', file)
+  DebugRELab printf('Updating info and saving it into: %s', file)
   if !has_key(s:info, 'parser') || info.regexp !=# s:info.regexp
     let info.parser = relab#parser#new()
     call info.parser.parse(info.regexp)
@@ -216,7 +219,8 @@ function! s:update_info(dict) "{{{
 endfunction "}}}
 
 function! s:refresh() "{{{
-  1DbgRELab printf('refresh')
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
   runtime! syntax/relab.vim
   if s:info.view ==# 'validate' || s:info.view ==# 'matches'
     let title = printf('RELab: %s', substitute(s:info.view, '^.', '\u&', ''))
@@ -255,7 +259,8 @@ function! s:refresh() "{{{
 endfunction "}}}
 
 function! relab#ontextchange() "{{{
-  1DbgRELab printf('ontextchange')
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
   if s:info.view ==# 'sample'
     let lines = getline(1, '$')
     return s:update_info({'lines': lines})
