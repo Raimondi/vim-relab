@@ -33,16 +33,18 @@ endif
 augroup RELab
   autocmd!
   autocmd TextChanged scratch.relab call relab#ontextchange()
+        \ | DebugRELab 'TextChanged'
   autocmd InsertLeave scratch.relab call relab#ontextchange()
+        \ | DebugRELab 'InsertLeave'
   autocmd BufRead,BufNewFile RELab setlocal filetype=relab buftype=nofile
         \ noundofile noswapfile
   autocmd ColorScheme * call s:hi_colors()
 
-  if exists('g:relab_debug') "get(g:, 'relab_debug', 0)
+  if exists('g:relab_debug')
     autocmd BufWritePost relab.vim,*/relab/*.vim source <afile>
-          \ | call relab#tests#run() | let relab = relab#parser#new()
+          \ | call relab#tests#run()
     autocmd BufWritePost */autoload/relab/id_key.txt
           \ | execute printf('source %s/parser.vim', expand('<afile>:p:h'))
-          \ | call relab#tests#run() | let relab = relab#parser#new()
+          \ | call relab#tests#run()
   endif
 augroup END

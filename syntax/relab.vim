@@ -128,17 +128,15 @@ syn match relabCodePointHexDigits /\x/ contained containedin=relabCodePoint
 syn match relabBackslash /\\\\/ contained containedin=relabMagic,relabNMagic,relabVNMagic,relabVMagic,relabOptional,relabNOptional,relabVNOptional,relabVOptional
 
 if s:is_scratch
-  syn region relabReport start=/\%3l^/re=s-1 end=/\%$/
+  syn region relabReportError matchgroup=relabWarning start=/\%3l^-*\^\+$/ end=/^Error:.*/
 
-  syn region relabReportError matchgroup=relabWarning start=/^-*\^\+$/ end=/^Error:.*/ contained containedin=relabReport
+  syn match relabReportItem /^\%>3l\%(\s*\S\+\)\?\s\+=>/
+  syn match relabReportPiece /^\%>3l\s*\zs\S\+/
+  syn match relabReportArrow /\%>3l=>/
 
-  syn match relabReportItem /^\%(\s*\S\+\)\?\s\+=>/ contained containedin=relabReport
-  syn match relabReportPiece /^\s*\zs\S\+/ contained containedin=relabReportItem
-  syn match relabReportArrow /=>/ contained containedin=relabReportItem
-
-  syn match relabMatch /^[^\-:]0:/ contained containedin=relabReport
-  syn match relabSubMatch /^[^\-:][1-9]:/ contained containedin=relabReport
-  syn match relabNoMatch /^-.*/ contained containedin=relabReport
+  syn match relabSubMatch /^\%>3l[^:]*\d:/
+  syn match relabNoMatch /^\%>3l-:.*/
+  syn match relabMatch /^\%>3l+:.*/
 endif
 
 " Define the default highlighting.

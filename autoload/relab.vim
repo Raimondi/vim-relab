@@ -5,13 +5,9 @@ function! relab#analysis(...) "{{{
   11DebugRELab printf('args: %s', a:)
   let view = 'analysis'
   let regexp = get(a:, 1, '')
-  let regexp = !empty(regexp) ? regexp :
-        \ get(get(s:, 'info', {}), 'regexp', '')
-  if empty(regexp)
-    echohl ErrorMsg
-    echom 'You need to provide a pattern!'
-    echohl Normal
-    return 0
+  let info = {'view': view}
+  if !empty(regexp)
+    let info.regexp = regexp
   endif
   return s:update_info({'regexp': regexp, 'view': view})
 endfunction "}}}
@@ -39,10 +35,11 @@ function! relab#set(...) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   let regexp = get(a:, 1, '')
-  let regexp = !empty(regexp) ? regexp : get(s:info, 'regexp', '')
+  let info = {}
   if !empty(regexp)
-    return s:update_info({'regexp': regexp})
+    let info.regexp = regexp
   endif
+  return s:update_info(info)
 endfunction "}}}
 
 function! relab#get_sample(first, last, file) "{{{
@@ -54,19 +51,20 @@ function! relab#get_sample(first, last, file) "{{{
     let lines = readfile(a:file)
   else
     echohl ErrorMsg
-    echom printf('Could not read file: %s', a:file)
+    echom printf('RELab error 2: Could not read file: %s', a:file)
     echohl Normal
     return 0
   endif
-  call s:update_info({'lines': lines})
-  return relab#sample()
+  let info = {}
+  let info.view = 'sample'
+  let info.lines = lines
+  call s:update_info(info)
 endfunction "}}}
 
 function! relab#line2regexp(linenr) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   let regexp = get(a:, 1, '')
-  let regexp = !empty(regexp) ? regexp : get(s:info, 'regexp', '')
   let linenr = a:linenr > 0 ? a:linenr : '.'
   let regexp = getline(linenr)
   return s:update_info({'regexp': regexp})
@@ -79,8 +77,7 @@ function! s:set_scratch(lines) "{{{
   set lazyredraw
   let fname = 'scratch.relab'
   let winnr = bufwinnr(fname)
-  if winnr == bufwinnr('%')
-    " nothing to do
+  if bufname('%') ==# fname
   elseif winnr >= 0
     execute printf('%swincmd w', winnr)
   else
@@ -89,16 +86,14 @@ function! s:set_scratch(lines) "{{{
       setlocal buftype=nofile
       setlocal noundofile
       setlocal noswapfile
+      setlocal nonumber
+      setlocal norelativenumber
       "setlocal undolevels=-1
     endif
   endif
-  if bufname('%') !=# fname
-    let &lazyredraw = lazyredraw
-    return 1
-  endif
-  silent %delete _
+  silent noautocmd %delete _
   undojoin
-  let lines_set = setline(1, a:lines) == 0
+  noautocmd let lines_set = setline(1, a:lines) == 0
   if lines_set
     undojoin
   endif
@@ -115,7 +110,7 @@ function! s:get_matches() "{{{
         \ {key, val -> 'submatch('.val.')'}), ',')
   function matches.get(...)
     let self.current.matches += map(copy(a:000),
-          \ {key, val -> printf('\%s: %s', key, val)})
+          \ {key, val -> printf('%s%s:%s', (key == 0 ? '' : '|\'), key, val)})
     return get(a:, 1, '')
   endfunction
   function matches.run(regexp)
@@ -131,11 +126,12 @@ function! s:get_matches() "{{{
   return matches
 endfunction "}}}
 
-function! s:update_info(dict) "{{{
+function! s:update_info(info) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   let file = get(g:, 'relab_filepath', '')
   if !exists('s:info') "{{{
+    let first = 1
     let data = filereadable(file) ? readfile(file) : []
     if len(data) < 2
       let s:info = get(s:, 'info', {})
@@ -202,18 +198,19 @@ function! s:update_info(dict) "{{{
       let [s:info.view, s:info.regexp; s:info.lines] = data
     endif
   endif "}}}
-  let info = extend(copy(a:dict), s:info, 'keep')
-  DebugRELab printf('Updating info and saving it into: %s', file)
-  if !has_key(s:info, 'parser') || info.regexp !=# s:info.regexp
-    let info.parser = relab#parser#new()
-    call info.parser.parse(info.regexp)
+  let info = filter(copy(s:info), 'v:key !=# ''parser''')
+  11DebugRELab printf('a:info: %s', a:info)
+  11DebugRELab printf('s:info: %s', info)
+  11DebugRELab printf('Updating info and saving it into: %s', file)
+  call extend(s:info, copy(a:info), 'force')
+  if !has_key(s:info, 'parser')
+        \ || get(a:info, 'regexp', s:info.regexp) !=# s:info.regexp
+    let s:info.parser = relab#parser#new()
+    call s:info.parser.parse(s:info.regexp)
   endif
-  if info == s:info
-    return s:info
-  endif
-  let s:info = info
+  " let the syntax script what view is on
   let g:relab_view = s:info.view
-  let data = [info.view, info.regexp] + info.lines
+  let data = [s:info.view, s:info.regexp] + s:info.lines
   call writefile(data, file, 's')
   return s:refresh()
 endfunction "}}}
@@ -235,6 +232,7 @@ function! s:refresh() "{{{
         if empty(item.matches) && s:info.view ==# 'validate'
           call add(lines, printf('-:%s', item.line))
         else
+          call add(lines, printf('+:%s', item.line))
           let matches.match_found = 1
           call extend(lines, item.matches)
         endif
@@ -251,9 +249,9 @@ function! s:refresh() "{{{
     return s:set_scratch(lines)
   elseif s:info.view ==# 'sample'
     syntax clear
-    let s:info = s:update_info({'view': s:info.view})
     return s:set_scratch(s:info.lines)
   else
+    echoerr printf('RELab error 1: invalid view: %s', s:info.view)
     return 0
   endif
 endfunction "}}}
@@ -263,13 +261,19 @@ function! relab#ontextchange() "{{{
   11DebugRELab printf('args: %s', a:)
   if s:info.view ==# 'sample'
     let lines = getline(1, '$')
+    if lines == s:info.lines
+      return
+    endif
     return s:update_info({'lines': lines})
   endif
   if line('$') < 2
     return
   endif
-  let curpos = getcurpos()
   let regexp = getline(2)
+  if regexp ==# s:info.regexp
+    return
+  endif
+  let curpos = getcurpos()
   call s:update_info({'regexp': regexp})
   return setpos('.', curpos)
 endfunction "}}}

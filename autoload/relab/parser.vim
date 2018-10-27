@@ -11,7 +11,6 @@ for line in readfile(printf('%s/%s', expand('<sfile>:p:h'), 'id_key.txt'))
   endif
 endfor
 
-
 function! s:init(...) dict "{{{
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
@@ -29,17 +28,14 @@ function! s:init(...) dict "{{{
   let self.sequence = []
   let self.sep = a:0 ? a:1 : self.sep
   let self.input_remaining = ''
+  let self.parent_node = relab#parser#node#new()
+  let self.parent_node.magicness = self.magicness
+  let self.parent_node.capt_groups = self.capt_groups
+  let self.parent_node.value = 'root'
+  let self.parent_node.magic = 'root'
+  let self.parent_node.id = 'root'
+  let self.parent_node.help = 'pattern'
 
-  let self.root.magicness = self.magicness
-  let self.root.capt_groups = self.capt_groups
-  let self.root.is_capt_group = 0
-  let self.root.ignorecase = self.ignorecase
-  let self.root.parent = {}
-  let self.root.siblings = []
-  let self.root.children = []
-  let self.root.level = 0
-
-  let self.parent = self.root
   if len(self.sep) > 1 || self.sep =~# '[a-zA-Z0-9]'
     "error
     echoerr printf('RELab: Wrong separator: %s', self.sep)
@@ -433,7 +429,7 @@ function! s:incomplete_in_coll() dict "{{{
   21DebugRELab printf('args: %s', a:)
   let next = self.token . strcharpart(self.input, self.pos)
   let ahead = strcharpart(self.input, self.pos, 1)
-  if empty(self.parent.children) && self.token ==# '^'
+  if empty(self.parent_node.children) && self.token ==# '^'
     23DebugRELab printf('incomplete_in_coll -> negate: %s', next)
     return 0
   elseif self.token =~#
@@ -572,7 +568,7 @@ function! s:parse(input) dict "{{{
     let magic = self.magic()
     let pos = self.pos
     let id = self.id()
-    let node = self.parent.new(token, magicness, ignorecase, magic, pos, id)
+    let node = self.parent_node.new(token, magicness, ignorecase, magic, pos, id)
     call add(self.sequence, node)
     23DebugRELab printf('parse -> token: %s, magicness: %s, ignorecase: %s, '
           \ . 'magic: %s, pos: %s, id: %s', token, magicness, ignorecase,
@@ -581,7 +577,7 @@ function! s:parse(input) dict "{{{
     if self.in_collection && node.ends_collection() "{{{
       23DebugRELab  'parse -> ends collection'
       call remove(self.nest_stack, -1)
-      let self.parent = node.parent.parent
+      let self.parent_node = node.parent.parent
       let self.in_collection = 0
       let node.level -= 1
       "}}}
@@ -638,7 +634,7 @@ function! s:parse(input) dict "{{{
       let node.siblings = node.parent.siblings
       let node.parent = node.parent.parent
       let node.level -= 1
-      let self.parent = node
+      let self.parent_node = node
       "}}}
 
     elseif self.in_optional_group() && node.is_invalid_in_optional() "{{{
@@ -651,7 +647,7 @@ function! s:parse(input) dict "{{{
     elseif node.starts_group() "{{{
       23DebugRELab  printf('parse -> starts group')
       call add(self.nest_stack, node)
-      let self.parent = node
+      let self.parent_node = node
       if node.starts_collection()
         23DebugRELab  printf('parse -> starts group -> collection')
         if self.collection_ends()
@@ -661,7 +657,7 @@ function! s:parse(input) dict "{{{
         else
           " Treat this as a literal character
           call remove(self.nest_stack, -1)
-          let self.parent = node.parent
+          let self.parent_node = node.parent
           let node.id = node.ignorecase ? 'x' : 'X'
         endif
       elseif node.starts_capt_group()
@@ -686,7 +682,7 @@ function! s:parse(input) dict "{{{
       if node.is_paired()
         23DebugRELab  printf('parse -> ends group -> is paired')
         call remove(self.nest_stack, -1)
-        let self.parent = node.parent.parent
+        let self.parent_node = node.parent.parent
         let node.level -= 1
         if node.ends_opt_group()
           23DebugRELab  printf('parse -> ends group -> is paired -> opt group')
@@ -863,7 +859,6 @@ function! relab#parser#new(...) "{{{
   let parser = {}
   let parser.id_map = s:id_map
   let parser.sep = a:0 ? a:1 : ''
-  let parser.root = relab#parser#node#new()
   let parser.init = function('s:init')
   let parser.magic = function('s:magic')
   let parser.id = function('s:id')

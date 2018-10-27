@@ -238,10 +238,10 @@ function! relab#parser#node#new() "{{{
   31DebugRELab printf('%s:', expand('<sfile>'))
   31DebugRELab printf('args: %s', a:)
   let node = {}
-  let node.value = 'root'
-  let node.magic = 'root'
-  let node.id = 'root'
-  let node.help = 'pattern'
+  let node.value = ''
+  let node.magic = ''
+  let node.id = ''
+  let node.help = ''
   let node.magicness = ''
   let node.capt_groups = -1
   let node.is_capt_group = 0
