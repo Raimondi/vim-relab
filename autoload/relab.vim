@@ -7,8 +7,10 @@ function! relab#analysis(...) "{{{
   let regexp = get(a:, 1, '')
   let info = {'view': view}
   if !empty(regexp)
+    " Only change info.regexp if it's not empty
     let info.regexp = regexp
   endif
+  " Show analysis view
   return s:update_info({'regexp': regexp, 'view': view})
 endfunction "}}}
 
@@ -16,6 +18,7 @@ function! relab#sample() "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   let view = 'sample'
+  " Show sample view
   return s:update_info({'view': view})
 endfunction "}}}
 
@@ -26,6 +29,7 @@ function! relab#matches(validate, ...) "{{{
   let regexp = get(a:, 1, '')
   let info = {'view': view}
   if !empty(regexp)
+    " Only change info.regexp if it's not empty
     let info.regexp = regexp
   endif
   return s:update_info(info)
@@ -37,6 +41,7 @@ function! relab#set(...) "{{{
   let regexp = get(a:, 1, '')
   let info = {}
   if !empty(regexp)
+    " Only change info.regexp if it's not empty
     let info.regexp = regexp
   endif
   return s:update_info(info)
@@ -46,6 +51,7 @@ function! relab#get_sample(first, last, file) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   if empty(a:file)
+    " use current buffer if no filename given
     let lines = getline(a:first, a:last)
   elseif filereadable(a:file)
     let lines = readfile(a:file)
@@ -55,6 +61,7 @@ function! relab#get_sample(first, last, file) "{{{
     echohl Normal
     return 0
   endif
+  " update with new info
   let info = {}
   let info.view = 'sample'
   let info.lines = lines
@@ -65,6 +72,7 @@ function! relab#line2regexp(linenr) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   let regexp = get(a:, 1, '')
+  " use the count if it was given
   let linenr = a:linenr > 0 ? a:linenr : '.'
   let regexp = getline(linenr)
   return s:update_info({'regexp': regexp})
@@ -78,9 +86,12 @@ function! s:set_scratch(lines) "{{{
   let fname = 'scratch.relab'
   let winnr = bufwinnr(fname)
   if bufname('%') ==# fname
+    " buffer is already in the current window
   elseif winnr >= 0
+    " buffer is in a window in this tab
     execute printf('%swincmd w', winnr)
   else
+    " buffer is not in any window in the current tab
     execute printf('botright silent split %s', fname)
     if empty(&buftype)
       setlocal buftype=nofile
@@ -109,18 +120,22 @@ function! s:get_matches() "{{{
   let matches.submatches = join(map(range(s:info.parser.capt_groups + 1),
         \ {key, val -> 'submatch('.val.')'}), ',')
   function matches.get(...)
+    " append matches
     let self.current.matches += map(copy(a:000),
           \ {key, val -> printf('%s%s:%s', (key == 0 ? '' : '|\'), key, val)})
     return get(a:, 1, '')
   endfunction
   function matches.run(regexp)
     let self.current = {}
+    " save some extra info
     let self.current.linenr = line('.')
     let self.current.line = getline('.')
     let self.current.matches = []
+    " get matches for this line
     execute printf('silent! s/%s/\=self.get(%s)/g', a:regexp, self.submatches)
     call add(self.lines, self.current)
   endfunction
+  " set buffer to the sample lines
   call s:set_scratch(s:info.lines)
   silent! g/^/call matches.run(escape(s:info.regexp, '/'))
   return matches
@@ -131,9 +146,11 @@ function! s:update_info(info) "{{{
   11DebugRELab printf('args: %s', a:)
   let file = get(g:, 'relab_filepath', '')
   if !exists('s:info') "{{{
+    " set up s:info
     let first = 1
     let data = filereadable(file) ? readfile(file) : []
     if len(data) < 2
+      " from scratch
       let s:info = get(s:, 'info', {})
       let s:info.view = 'validate'
       let s:info.regexp = get(s:info, 'regexp',
@@ -194,6 +211,7 @@ function! s:update_info(info) "{{{
             \ 'this\ is"really"not\allowed@example.com',
             \ ])
     else
+      " from the file
       let s:info = {}
       let [s:info.view, s:info.regexp; s:info.lines] = data
     endif
@@ -205,6 +223,7 @@ function! s:update_info(info) "{{{
   call extend(s:info, copy(a:info), 'force')
   if !has_key(s:info, 'parser')
         \ || get(a:info, 'regexp', s:info.regexp) !=# s:info.regexp
+    " No parser or new regexp, use it
     let s:info.parser = relab#parser#new()
     call s:info.parser.parse(s:info.regexp)
   endif
@@ -222,18 +241,24 @@ function! s:refresh() "{{{
   if s:info.view ==# 'validate' || s:info.view ==# 'matches'
     let title = printf('RELab: %s', substitute(s:info.view, '^.', '\u&', ''))
     if !empty(s:info.parser.errors)
+      " the regexp has errors, report them
       let lines = [title]
       call add(lines, s:info.regexp)
       call extend(lines, s:info.parser.lines())
     else
+      " show report
       let lines = [title, s:info.regexp, '']
       let matches = s:get_matches()
       for item in matches.lines
         if empty(item.matches) && s:info.view ==# 'validate'
+          " add not matched line
           call add(lines, printf('-:%s', item.line))
         else
+          " add matched line
           call add(lines, printf('+:%s', item.line))
+          " we need to know if there was a match
           let matches.match_found = 1
+          " add matches
           call extend(lines, item.matches)
         endif
       endfor
@@ -249,6 +274,7 @@ function! s:refresh() "{{{
     return s:set_scratch(lines)
   elseif s:info.view ==# 'sample'
     syntax clear
+    " set buffer contents to sample lines
     return s:set_scratch(s:info.lines)
   else
     echoerr printf('RELab error 1: invalid view: %s', s:info.view)
@@ -262,15 +288,18 @@ function! relab#ontextchange() "{{{
   if s:info.view ==# 'sample'
     let lines = getline(1, '$')
     if lines == s:info.lines
+      " nothing to update
       return
     endif
     return s:update_info({'lines': lines})
   endif
   if line('$') < 2
+    " regexp should be on line 2, nothing to update
     return
   endif
   let regexp = getline(2)
   if regexp ==# s:info.regexp
+    " nothing to update
     return
   endif
   let curpos = getcurpos()
