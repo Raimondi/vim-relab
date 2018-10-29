@@ -149,7 +149,7 @@ function! s:update_info(info) "{{{
     " set up s:info
     let first = 1
     let data = filereadable(file) ? readfile(file) : []
-    if len(data) < 2
+    if get(g:, 'relab_no_file', 0) || len(data) < 2
       " from scratch
       let s:info = get(s:, 'info', {})
       let s:info.view = 'validate'
@@ -230,7 +230,9 @@ function! s:update_info(info) "{{{
   " let the syntax script what view is on
   let g:relab_view = s:info.view
   let data = [s:info.view, s:info.regexp] + s:info.lines
-  call writefile(data, file, 's')
+  if !get(g:, 'relab_no_file', 0)
+    call writefile(data, file, 's')
+  endif
   return s:refresh()
 endfunction "}}}
 
@@ -305,4 +307,12 @@ function! relab#ontextchange() "{{{
   let curpos = getcurpos()
   call s:update_info({'regexp': regexp})
   return setpos('.', curpos)
+endfunction "}}}
+
+function! relab#test_helper(...) "{{{
+  if !a:0
+    unlet! s:info
+  elseif type(a:1) == v:t_dict
+    call s:update_info(a:1)
+  endif
 endfunction "}}}

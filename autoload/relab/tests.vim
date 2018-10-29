@@ -1,11 +1,48 @@
-function! relab#tests#run(...) abort
-  let debug = get(g:, 'relab_debug', 0)
-  let g:relab_debug = get(a:, 1, 0)
-
-  let p = relab#parser#new()
-
+function! relab#tests#run(...) abort "{{{
+  if exists('g:relab_debug')
+    let debug = g:relab_debug
+    unlet g:relab_debug
+  endif
   let v:errors = []
+  let all_test_functions = ['parser', 'views', 'node']
+  if !a:0 || a:1 ==# 'all'
+    let test_functions = all_test_functions
+  else
+    let test_functions = a:000
+  endif
+  for f in test_functions
+    if index(test_functions, f) >= 0
+      call function(printf('s:%s', f))()
+    endif
+  endfor
+  if exists('debug')
+    let g:relab_debug = debug
+  endif
 
+  if !empty(v:errors)
+    echohl ErrorMsg
+    echom printf('%s error(s) found:', len(v:errors))
+    echohl Normal
+    for e in v:errors
+      let test = substitute(e, '\(.\{-}\) Expected .\{-} but got .*',
+            \ '  \1', '')
+      let expected = substitute(e, '.\{-} Expected \(.\{-}\) but got .*',
+            \ '  expected: \1', '')
+      let result = substitute(e, '.\{-} Expected .\{-} but got \(.*\)',
+            \ '  but got : \1', '')
+      echohl WarningMsg
+      echom  'Test failed: '
+      echohl Normal
+      echom test
+      echom expected
+      echom result
+    endfor
+    return 0
+  endif
+  return 1
+endfunction "}}}
+
+function! s:parser() "{{{
   let input =     ''
   let expected = []
   let p = relab#parser#new()
@@ -871,38 +908,565 @@ function! relab#tests#run(...) abort
   let has_error = !empty(p.errors)
   call assert_false(has_error, input)
 
-  let input =     ''
-  let expected = {}
-  let has_error = 0
-  try
-    call relab#parser#new('a')
-  catch /RELab.*/
-    let has_error = 1
-  endtry
-  call assert_true(has_error, input)
+  call assert_fails('call relab#parser#new(''a'')')
 
-  let g:relab_debug = debug
-  if !empty(v:errors)
-    let g:relab_debug = 0
-    echohl ErrorMsg
-    echom printf('%s error(s) found:', len(v:errors))
-    echohl Normal
-    for e in v:errors
-      let test = substitute(e, '\(.\{-}\) Expected .\{-} but got .*',
-            \ '  \1', '')
-      let expected = substitute(e, '.\{-} Expected \(.\{-}\) but got .*',
-            \ '  expected: \1', '')
-      let result = substitute(e, '.\{-} Expected .\{-} but got \(.*\)',
-            \ '  but got : \1', '')
-      echohl WarningMsg
-      echom  'Test failed: '
-      echohl Normal
-      echom test
-      echom expected
-      echom result
-    endfor
-    let g:relab_debug = debug
-    return 0
+  call assert_fails('call relab#parser#new(''ab'')')
+
+  call assert_fails('call relab#parser#new(''//'')')
+endfunction "}}}
+
+function! s:node() "{{{
+endfunction "}}}
+
+function! s:views() "{{{
+  let g:relab_no_file = 1
+  if !&lazyredraw
+    let nolazyredraw = 1
   endif
-  return 1
-endfunction
+  tabnew
+
+  call s:reset()
+  RELab
+
+  let got = bufname('%')
+  let expected = 'scratch.relab'
+  let msg = 'Not the right buffer'
+  if !assert_equal(expected, got, msg)
+
+    let got = line('$')
+    let expected = 148
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Validate'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  '|\2:example.com'
+      call assert_equal(expected, got)
+
+    endif
+
+    RELabAnalyze
+
+    let got = line('$')
+    let expected = 22
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Analysis'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(21)
+      let expected =  '  \) => Ends a capturing group.'
+      call assert_equal(expected, got)
+
+    endif
+
+    RELabMatches
+
+    let got = line('$')
+    let expected = 127
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Matches'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  '|\2:example.com'
+      call assert_equal(expected, got)
+
+    endif
+
+    RELabEditSample
+
+    let got = line('$')
+    let expected = 52
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'This is some text to play with your regular '
+            \ . 'expressions'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  'Read :help relab'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  'this\ is"really"not\allowed@example.com'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+    endif
+
+    RELabValidate
+
+    let got = line('$')
+    let expected = 148
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Validate'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  '|\2:example.com'
+      call assert_equal(expected, got)
+
+    endif
+
+  endif
+
+  call s:reset()
+  RELabAnalyze
+
+  let got = bufname('%')
+  let expected = 'scratch.relab'
+  let msg = 'Not the right buffer'
+  if !assert_equal(expected, got, msg)
+
+    let got = line('$')
+    let expected = 22
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Analysis'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(21)
+      let expected =  '  \) => Ends a capturing group.'
+      call assert_equal(expected, got)
+
+    endif
+
+    RELabEditSample
+
+    let got = line('$')
+    let expected = 52
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'This is some text to play with your regular '
+            \ . 'expressions'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  'Read :help relab'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  'this\ is"really"not\allowed@example.com'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+    endif
+
+    RELabValidate
+
+    let got = line('$')
+    let expected = 148
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Validate'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  '|\2:example.com'
+      call assert_equal(expected, got)
+
+    endif
+
+    RELabMatches
+
+    let got = line('$')
+    let expected = 127
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Matches'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  '|\2:example.com'
+      call assert_equal(expected, got)
+
+    endif
+
+  endif
+
+  call s:reset()
+  RELabEditSample
+
+  let got = bufname('%')
+  let expected = 'scratch.relab'
+  let msg = 'Not the right buffer'
+  if !assert_equal(expected, got, msg)
+
+    let got = line('$')
+    let expected = 52
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'This is some text to play with your regular '
+            \ . 'expressions'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  'Read :help relab'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  'this\ is"really"not\allowed@example.com'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+    endif
+
+    RELabValidate
+
+    let got = line('$')
+    let expected = 148
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Validate'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  '|\2:example.com'
+      call assert_equal(expected, got)
+
+    endif
+
+    RELabMatches
+
+    let got = line('$')
+    let expected = 127
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Matches'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  '|\2:example.com'
+      call assert_equal(expected, got)
+
+    endif
+
+    RELabValidate
+
+    let got = line('$')
+    let expected = 148
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Validate'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  '|\2:example.com'
+      call assert_equal(expected, got)
+
+    endif
+
+  endif
+
+  call s:reset()
+  RELabMatches
+
+  let got = bufname('%')
+  let expected = 'scratch.relab'
+  let msg = 'Not the right buffer'
+  if !assert_equal(expected, got, msg)
+
+    let got = line('$')
+    let expected = 127
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Matches'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  '|\2:example.com'
+      call assert_equal(expected, got)
+
+    endif
+
+    RELabAnalyze
+
+    let got = line('$')
+    let expected = 22
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Analysis'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(21)
+      let expected =  '  \) => Ends a capturing group.'
+      call assert_equal(expected, got)
+
+    endif
+
+    RELabEditSample
+
+    let got = line('$')
+    let expected = 52
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'This is some text to play with your regular '
+            \ . 'expressions'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  'Read :help relab'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  'this\ is"really"not\allowed@example.com'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+    endif
+
+    RELabValidate
+
+    let got = line('$')
+    let expected = 148
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Validate'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  '|\2:example.com'
+      call assert_equal(expected, got)
+
+    endif
+
+  endif
+
+  call s:reset()
+  RELabValidate
+
+  let got = bufname('%')
+  let expected = 'scratch.relab'
+  let msg = 'Not the right buffer'
+  if !assert_equal(expected, got, msg)
+
+    let got = line('$')
+    let expected = 148
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Validate'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  '|\2:example.com'
+      call assert_equal(expected, got)
+
+    endif
+
+    RELabAnalyze
+
+    let got = line('$')
+    let expected = 22
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Analysis'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(21)
+      let expected =  '  \) => Ends a capturing group.'
+      call assert_equal(expected, got)
+
+    endif
+
+    RELabMatches
+
+    let got = line('$')
+    let expected = 127
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Matches'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  '|\2:example.com'
+      call assert_equal(expected, got)
+
+    endif
+
+    RELabEditSample
+
+    let got = line('$')
+    let expected = 52
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'This is some text to play with your regular '
+            \ . 'expressions'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  'Read :help relab'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  'this\ is"really"not\allowed@example.com'
+      let msg = 'Wrong line content'
+      call assert_equal(expected, got, msg)
+
+    endif
+
+  endif
+
+  if exists('nolazyredraw')
+    set nolazyredraw
+  endif
+  tabclose!
+  unlet! g:relab_no_file
+endfunction "}}}
+
+function! s:reset() "{{{
+  call relab#test_helper()
+  unlet! g:relab_view
+  silent! bwipe! scratch.relab
+endfunction "}}}
