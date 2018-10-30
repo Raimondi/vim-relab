@@ -11,7 +11,7 @@ function! relab#analysis(...) "{{{
     let info.regexp = regexp
   endif
   " Show analysis view
-  return s:update_info({'regexp': regexp, 'view': view})
+  return s:update_info(info)
 endfunction "}}}
 
 function! relab#sample() "{{{
@@ -112,20 +112,24 @@ function! s:set_scratch(lines) "{{{
   return lines_set
 endfunction "}}}
 
-function! s:get_matches() "{{{
+function! s:get_matches(groups) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   let matches = {}
   let matches.lines = []
-  let matches.submatches = join(map(range(s:info.parser.capt_groups + 1),
+  let matches.submatches = join(map(range(a:groups + 1),
         \ {key, val -> 'submatch('.val.')'}), ',')
   function matches.get(...)
+    14DebugRELab printf('%s:', expand('<sfile>'))
+    14DebugRELab printf('args: %s', a:)
     " append matches
     let self.current.matches += map(copy(a:000),
           \ {key, val -> printf('%s%s:%s', (key == 0 ? '' : '|\'), key, val)})
     return get(a:, 1, '')
   endfunction
   function matches.run(regexp)
+    13DebugRELab printf('%s:', expand('<sfile>'))
+    13DebugRELab printf('args: %s', a:)
     let self.current = {}
     " save some extra info
     let self.current.linenr = line('.')
@@ -133,6 +137,7 @@ function! s:get_matches() "{{{
     let self.current.matches = []
     " get matches for this line
     execute printf('silent! s/%s/\=self.get(%s)/g', a:regexp, self.submatches)
+    14DebugRELab printf('current: %s', self.current)
     call add(self.lines, self.current)
   endfunction
   " set buffer to the sample lines
@@ -219,18 +224,36 @@ function! s:update_info(info) "{{{
   let info = filter(copy(s:info), 'v:key !=# ''parser''')
   11DebugRELab printf('a:info: %s', a:info)
   11DebugRELab printf('s:info: %s', info)
-  11DebugRELab printf('Updating info and saving it into: %s', file)
-  call extend(s:info, copy(a:info), 'force')
   if !has_key(s:info, 'parser')
-        \ || get(a:info, 'regexp', s:info.regexp) !=# s:info.regexp
-    " No parser or new regexp, use it
+    11DebugRELab printf('Get new parser:')
+    " No parser, add one
     let s:info.parser = relab#parser#new()
     call s:info.parser.parse(s:info.regexp)
   endif
-  " let the syntax script what view is on
+  if has_key(a:info, 'regexp') && a:info.regexp != s:info.regexp
+    11DebugRELab printf('Updating regexp: %s', a:info.regexp)
+    " new regexp, parse it
+    call s:info.parser.parse(a:info.regexp)
+    let s:info.regexp = a:info.regexp
+  endif
+  if has_key(a:info, 'view')
+    11DebugRELab printf('Updating view: %s', a:info.view)
+    " new view
+    let s:info.view = a:info.view
+  endif
+  if has_key(a:info, 'lines')
+    11DebugRELab printf('Updating lines: %s', a:info.lines)
+    " new lines
+    let s:info.lines = a:info.lines
+  endif
+  let info = filter(copy(s:info), 'v:key !=# ''parser''')
+  11DebugRELab printf('updated s:info: %s', info)
+  " let the syntax script know what view is on
   let g:relab_view = s:info.view
   let data = [s:info.view, s:info.regexp] + s:info.lines
   if !get(g:, 'relab_no_file', 0)
+    11DebugRELab printf('saving info into: %s', file)
+    " write info to file if enabled
     call writefile(data, file, 's')
   endif
   return s:refresh()
@@ -240,22 +263,29 @@ function! s:refresh() "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   runtime! syntax/relab.vim
-  if s:info.view ==# 'validate' || s:info.view ==# 'matches'
-    let title = printf('RELab: %s', substitute(s:info.view, '^.', '\u&', ''))
+  let view = s:info.view
+  if view ==# 'validate' || view ==# 'matches'
+    12DebugRELab printf('View: %s', view)
+    let title = printf('RELab: %s', substitute(view, '^.', '\u&', ''))
     if !empty(s:info.parser.errors)
+      12DebugRELab printf('We have errors:')
       " the regexp has errors, report them
       let lines = [title]
       call add(lines, s:info.regexp)
       call extend(lines, s:info.parser.lines())
     else
+      12DebugRELab printf('No errors:')
       " show report
       let lines = [title, s:info.regexp, '']
-      let matches = s:get_matches()
+      let matches = s:get_matches(s:info.parser.capt_groups)
       for item in matches.lines
-        if empty(item.matches) && s:info.view ==# 'validate'
+        13DebugRELab printf('item: %s', item)
+        if empty(item.matches) && view ==# 'validate'
+          13DebugRELab printf('add unmatched line: %s', item.line)
           " add not matched line
           call add(lines, printf('-:%s', item.line))
-        else
+        elseif !empty(item.matches)
+          13DebugRELab printf('add matched line: %s', item.line)
           " add matched line
           call add(lines, printf('+:%s', item.line))
           " we need to know if there was a match
@@ -264,22 +294,27 @@ function! s:refresh() "{{{
           call extend(lines, item.matches)
         endif
       endfor
-      if !has_key(matches, 'match_found') && s:info.view ==# 'matches'
+      if !has_key(matches, 'match_found') && view ==# 'matches'
+        12DebugRELab printf('No matches found:')
+        " add notice
         call add(lines, 'No matches found')
       endif
     endif
     return s:set_scratch(lines)
-  elseif s:info.view ==# 'analysis'
-    let title = printf('RELab: %s', substitute(s:info.view, '^.', '\u&', ''))
+  elseif view ==# 'analysis'
+    12DebugRELab printf('View: %s', view)
+    let title = printf('RELab: %s', substitute(view, '^.', '\u&', ''))
     let lines = [title, s:info.regexp]
     let lines += s:info.parser.lines()
     return s:set_scratch(lines)
-  elseif s:info.view ==# 'sample'
+  elseif view ==# 'sample'
+    12DebugRELab printf('View: %s', view)
     syntax clear
     " set buffer contents to sample lines
     return s:set_scratch(s:info.lines)
   else
-    echoerr printf('RELab error 1: invalid view: %s', s:info.view)
+    12DebugRELab printf('View: %s', view)
+    echoerr printf('RELab error 1: invalid view: %s', view)
     return 0
   endif
 endfunction "}}}
@@ -287,7 +322,16 @@ endfunction "}}}
 function! relab#ontextchange() "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
+  let info = filter(copy(s:info), 'v:key !=# ''parser''')
+  11DebugRELab printf('s:info: %s', info)
+  let mode = mode()
+  echom 'mode: ' .mode
+  if mode ==# 'i'
+    12DebugRELab printf('DO nothing while on insert mode')
+    return
+  endif
   if s:info.view ==# 'sample'
+    12DebugRELab printf('View: sample')
     let lines = getline(1, '$')
     if lines == s:info.lines
       " nothing to update
@@ -295,12 +339,15 @@ function! relab#ontextchange() "{{{
     endif
     return s:update_info({'lines': lines})
   endif
+  12DebugRELab printf('View: not in sample')
   if line('$') < 2
+    12DebugRELab printf('There is no regexp to be found')
     " regexp should be on line 2, nothing to update
     return
   endif
   let regexp = getline(2)
   if regexp ==# s:info.regexp
+    12DebugRELab printf('The new regexp is the same: %s', regexp)
     " nothing to update
     return
   endif

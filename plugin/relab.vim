@@ -32,10 +32,10 @@ endif
 
 augroup RELab
   autocmd!
-  autocmd TextChanged scratch.relab call relab#ontextchange()
-        \ | DebugRELab 'TextChanged'
-  autocmd InsertLeave scratch.relab call relab#ontextchange()
-        \ | DebugRELab 'InsertLeave'
+  autocmd TextChanged scratch.relab execute 'DebugRELab ''TextChanged'''
+        \ | call relab#ontextchange()
+  autocmd InsertLeave scratch.relab execute 'DebugRELab ''InsertLeave'''
+        \ | call relab#ontextchange()
   autocmd BufRead,BufNewFile RELab setlocal filetype=relab buftype=nofile
         \ noundofile noswapfile
   autocmd ColorScheme * call s:hi_colors()

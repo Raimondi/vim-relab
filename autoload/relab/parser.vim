@@ -22,7 +22,7 @@ function! s:init(...) dict "{{{
   let self.token = ''
   let self.tokens = []
   let self.nest_stack = []
-  let self.input = ''
+  let self.input = []
   let self.length = 0
   let self.pos = 0
   let self.capt_groups = 0
@@ -646,16 +646,19 @@ function! s:next() dict "{{{
   21DebugRELab printf('args: %s', a:)
   " put the next token into self.token
   if self.pos == 0 && !empty(matchstr(self.input, '^\\%#=.\?'))
+    22DebugRELab printf('regexp engine token')
     " \%#= must be the first thing
     let self.token = matchstr(self.input, '^\\%#=.\?')
     let self.pos = strchars(self.token)
   elseif !empty(self.sep)
         \ && strcharpart(self.input, self.pos, 1) ==# self.sep
+    22DebugRELab printf('separator found')
     " remove the separator if any was given
     let self.token = ''
     let self.pos += 1
     let self.input_remaining = self.input[self.pos : ]
   else
+    22DebugRELab printf('get a regular token')
     " get a regular token
     let self.token = strcharpart(self.input, self.pos, 1)
     let self.pos += 1
@@ -675,6 +678,9 @@ function! s:parse(input) dict "{{{
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
   " parse the given regexp
+  if type(self.input) != v:t_list
+    call self.init()
+  endif
   23DebugRELab printf('')
   23DebugRELab printf('starting to parse: %s', a:input)
   let input = empty(self.sep) ? a:input : a:input[1:]

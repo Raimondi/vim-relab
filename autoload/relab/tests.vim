@@ -924,6 +924,7 @@ function! s:views() "{{{
     let nolazyredraw = 1
   endif
   tabnew
+  let bufnr = bufnr('%')
 
   call s:reset()
   RELab
@@ -1458,11 +1459,55 @@ function! s:views() "{{{
 
   endif
 
+  call s:reset()
+  RELabValidate
+
+  let got = bufname('%')
+  let expected = 'scratch.relab'
+  let msg = 'Not the right buffer'
+  if !assert_equal(expected, got, msg)
+
+    let got = line('$')
+    let expected = 148
+    let msg = 'Wrong number of lines'
+    if !assert_equal(expected, got, msg)
+
+      let got = getline(1)
+      let expected =  'RELab: Validate'
+      let msg = 'Not the right title'
+      call assert_equal(expected, got, msg)
+
+      let got = getline(2)
+      let expected =  '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+      let msg = 'Not the right regexp'
+      call assert_equal(expected, got, msg)
+
+      let got = getline('$')
+      let expected =  '|\2:example.com'
+      call assert_equal(expected, got)
+
+    endif
+
+    call setline(2, 'a\+')
+    doau TextChanged
+    let got = getline(5)
+    let expected =  '0:a'
+    call assert_equal(expected, got)
+
+    "call setline(2, 'a\+')
+    let got = getline(6)
+    let expected =  '0:a'
+    call assert_equal(expected, got)
+
+  endif
+
   if exists('nolazyredraw')
     set nolazyredraw
   endif
   tabclose!
+  execute printf('bwipe! %s', bufnr)
   unlet! g:relab_no_file
+  call s:reset()
 endfunction "}}}
 
 function! s:reset() "{{{
