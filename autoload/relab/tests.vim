@@ -950,7 +950,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline('$')
-      let expected =  '|\2:example.com'
+      let expected =  ' \2:example.com'
       call assert_equal(expected, got)
 
     endif
@@ -996,7 +996,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline('$')
-      let expected =  '|\2:example.com'
+      let expected =  ' \2:example.com'
       call assert_equal(expected, got)
 
     endif
@@ -1044,7 +1044,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline('$')
-      let expected =  '|\2:example.com'
+      let expected =  ' \2:example.com'
       call assert_equal(expected, got)
 
     endif
@@ -1123,7 +1123,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline('$')
-      let expected =  '|\2:example.com'
+      let expected =  ' \2:example.com'
       call assert_equal(expected, got)
 
     endif
@@ -1146,7 +1146,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline('$')
-      let expected =  '|\2:example.com'
+      let expected =  ' \2:example.com'
       call assert_equal(expected, got)
 
     endif
@@ -1202,7 +1202,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline('$')
-      let expected =  '|\2:example.com'
+      let expected =  ' \2:example.com'
       call assert_equal(expected, got)
 
     endif
@@ -1225,7 +1225,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline('$')
-      let expected =  '|\2:example.com'
+      let expected =  ' \2:example.com'
       call assert_equal(expected, got)
 
     endif
@@ -1248,7 +1248,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline('$')
-      let expected =  '|\2:example.com'
+      let expected =  ' \2:example.com'
       call assert_equal(expected, got)
 
     endif
@@ -1279,7 +1279,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline('$')
-      let expected =  '|\2:example.com'
+      let expected =  ' \2:example.com'
       call assert_equal(expected, got)
 
     endif
@@ -1350,7 +1350,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline('$')
-      let expected =  '|\2:example.com'
+      let expected =  ' \2:example.com'
       call assert_equal(expected, got)
 
     endif
@@ -1381,7 +1381,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline('$')
-      let expected =  '|\2:example.com'
+      let expected =  ' \2:example.com'
       call assert_equal(expected, got)
 
     endif
@@ -1427,7 +1427,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline('$')
-      let expected =  '|\2:example.com'
+      let expected =  ' \2:example.com'
       call assert_equal(expected, got)
 
     endif
@@ -1483,7 +1483,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline('$')
-      let expected =  '|\2:example.com'
+      let expected =  ' \2:example.com'
       call assert_equal(expected, got)
 
     endif

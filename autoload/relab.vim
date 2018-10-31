@@ -123,8 +123,19 @@ function! s:get_matches(groups) "{{{
     14DebugRELab printf('%s:', expand('<sfile>'))
     14DebugRELab printf('args: %s', a:)
     " append matches
-    let self.current.matches += map(copy(a:000),
-          \ {key, val -> printf('%s%s:%s', (key == 0 ? '' : '|\'), key, val)})
+    let i = 0
+    while i < a:0
+      if i == 0
+        let prefix = ''
+      elseif i < a:0 - 1
+        let prefix = '|\'
+      else
+        let prefix = ' \'
+      endif
+      let amatch = printf('%s%s:%s', prefix, i, a:000[i])
+      call add(self.current.matches, amatch)
+      let i += 1
+    endwhile
     return get(a:, 1, '')
   endfunction
   function matches.run(regexp)
@@ -283,7 +294,7 @@ function! s:refresh() "{{{
         if empty(item.matches) && view ==# 'validate'
           13DebugRELab printf('add unmatched line: %s', item.line)
           " add not matched line
-          call add(lines, printf('-:%s', item.line))
+          call add(lines, printf('x:%s', item.line))
         elseif !empty(item.matches)
           13DebugRELab printf('add matched line: %s', item.line)
           " add matched line
