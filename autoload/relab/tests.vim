@@ -1513,5 +1513,5 @@ endfunction "}}}
 function! s:reset() "{{{
   call relab#test_helper()
   unlet! g:relab_view
-  silent! bwipe! RELab
+  silent! bwipe! ^RELab$
 endfunction "}}}

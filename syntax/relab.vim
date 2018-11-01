@@ -3,7 +3,7 @@
 " Maintainer:	Israel Chauca F. <israelchauca@gmail.com>
 
 " Quit when a (custom) syntax file was already loaded or not needed
-if exists('b:current_syntax') || g:relab_view ==# 'sample'
+if exists('b:current_syntax') || get(g:, 'relab_view', '') ==# 'sample'
   finish
 endif
 
@@ -141,6 +141,8 @@ if s:is_scratch
   syn match relabMatch    /^\%>3l+:.*/
   " an error report
   syn region relabReportError matchgroup=relabWarning start=/\%3l^-*\^\+$/ end=/^Error:.*/
+else
+  syn match relabComment /^ .*/
 endif
 
 " Define the default highlighting.
@@ -178,6 +180,7 @@ hi default link relabReportArrow	Special
 hi default link relabMatch		Type
 hi default link relabSubMatch		Type
 hi default link relabNoMatch		WarningMsg
+hi default link relabComment		Comment
 
 let b:current_syntax = 'relab'
 

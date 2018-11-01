@@ -43,15 +43,17 @@ view and the final text will be used for the other views.
 
 						*relab-regexp-collection*
 Any file with the .relab extension is considered as a collection of regexp and
-will have syntax highlighting and, if mappings are enabled, <leader>rl will
-load the current line as a regexp.
+will have syntax highlighting. Lines starting with a space will highlighted as
+comments, but that's the only difference from the other lines. if mappings are
+enabled, <leader>rl will load the current line as a regexp.
 
-DESCRIPTION VIEW				*relab-description*
+						*relab-views*
+DESCRIPTION VIEW				*relab-description-view*
 
 Shows the description of every element of the current regexp.
 >
 	+---------------------------------------------------------------+
-	|RELab: Analysis						|
+	|RELab: Description						|
 	|\(\w\+\)@\(\w\+\)						|
 	|								|
 	|  \( => Starts a capturing group.				|
@@ -67,7 +69,7 @@ Shows the description of every element of the current regexp.
 	+---------------------------------------------------------------+
 <
 
-SAMPLE VIEW					*relab-sample*
+SAMPLE VIEW					*relab-sample-view*
 
 Shows the sample text that will be used with the given regex. Any edits to the
 text while in this view will be preserved for the other views.
@@ -89,7 +91,7 @@ text while in this view will be preserved for the other views.
 	+---------------------------------------------------------------+
 <
 
-MATCHES VIEW					*relab-matches*
+MATCHES VIEW					*relab-matches-view*
 
 Show every line of the sample text that is matched by the current regexp. Also
 show the matched text for every matched line.
@@ -111,13 +113,13 @@ show the matched text for every matched line.
 	+---------------------------------------------------------------+
 <
 
-VALIDATION VIEW					*relab-validation*
+VALIDATION VIEW					*relab-validation-view*
 
 Show every line of the sampe text showing whether or not it is matched by the
 current regexp. Also show the matched text for every matched line.
 >
 	+---------------------------------------------------------------+
-	|RELab: Validate						|
+	|RELab: Validation						|
 	|\(\w\+\)@\(\w\+\)						|
 	|								|
 	|x:Some email addresses to play with				|
@@ -176,6 +178,52 @@ g:relab_file_path	string (default is one dir up from plugin/relab.vim)
 g:relab_set_mappings	boolean (default off)
 			Whether to set mappings in the RELab buffer and other
 			*.relab files.
+
+
+MAPPINGS					*relab-mappings*
+
+When |'relab_set_mappings'| is true, some mappings are defined to switch among
+the different views:
+
+						*relab-rd*
+<leader>rd		Run |:RELabDescribe|, only in the RELab buffer.
+
+						*relab-rm*
+<leader>rm		Run |:RELabMatches|, only in the RELab buffer.
+
+						*relab-rs*
+<leader>rs		Run |:RELabSample|, only in the RELab buffer.
+
+						*relab-rv*
+<leader>rv		Run |:RELabValidate|, only in the RELab buffer.
+
+
+An additional mapping is defined for files with regexp collections (ending in
+.relab):
+
+						*relab-rl*
+<leader>rl		Run |:RELabUseLine| on the current line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
