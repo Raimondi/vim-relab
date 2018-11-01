@@ -923,14 +923,14 @@ function! s:views() "{{{
   if !&lazyredraw
     let nolazyredraw = 1
   endif
-  tabnew
+  silent tabnew
   let bufnr = bufnr('%')
 
   call s:reset()
   RELab
 
   let got = bufname('%')
-  let expected = 'scratch.relab'
+  let expected = 'RELab'
   let msg = 'Not the right buffer'
   if !assert_equal(expected, got, msg)
 
@@ -940,7 +940,7 @@ function! s:views() "{{{
     if !assert_equal(expected, got, msg)
 
       let got = getline(1)
-      let expected =  'RELab: Validate'
+      let expected =  'RELab: Validation'
       let msg = 'Not the right title'
       call assert_equal(expected, got, msg)
 
@@ -955,7 +955,7 @@ function! s:views() "{{{
 
     endif
 
-    RELabAnalyze
+    RELabDescribe
 
     let got = line('$')
     let expected = 22
@@ -963,7 +963,7 @@ function! s:views() "{{{
     if !assert_equal(expected, got, msg)
 
       let got = getline(1)
-      let expected =  'RELab: Analysis'
+      let expected =  'RELab: Description'
       let msg = 'Not the right title'
       call assert_equal(expected, got, msg)
 
@@ -1001,7 +1001,7 @@ function! s:views() "{{{
 
     endif
 
-    RELabEditSample
+    RELabSample
 
     let got = line('$')
     let expected = 52
@@ -1034,7 +1034,7 @@ function! s:views() "{{{
     if !assert_equal(expected, got, msg)
 
       let got = getline(1)
-      let expected =  'RELab: Validate'
+      let expected =  'RELab: Validation'
       let msg = 'Not the right title'
       call assert_equal(expected, got, msg)
 
@@ -1052,10 +1052,10 @@ function! s:views() "{{{
   endif
 
   call s:reset()
-  RELabAnalyze
+  RELabDescribe
 
   let got = bufname('%')
-  let expected = 'scratch.relab'
+  let expected = 'RELab'
   let msg = 'Not the right buffer'
   if !assert_equal(expected, got, msg)
 
@@ -1065,7 +1065,7 @@ function! s:views() "{{{
     if !assert_equal(expected, got, msg)
 
       let got = getline(1)
-      let expected =  'RELab: Analysis'
+      let expected =  'RELab: Description'
       let msg = 'Not the right title'
       call assert_equal(expected, got, msg)
 
@@ -1080,7 +1080,7 @@ function! s:views() "{{{
 
     endif
 
-    RELabEditSample
+    RELabSample
 
     let got = line('$')
     let expected = 52
@@ -1113,7 +1113,7 @@ function! s:views() "{{{
     if !assert_equal(expected, got, msg)
 
       let got = getline(1)
-      let expected =  'RELab: Validate'
+      let expected =  'RELab: Validation'
       let msg = 'Not the right title'
       call assert_equal(expected, got, msg)
 
@@ -1154,10 +1154,10 @@ function! s:views() "{{{
   endif
 
   call s:reset()
-  RELabEditSample
+  RELabSample
 
   let got = bufname('%')
-  let expected = 'scratch.relab'
+  let expected = 'RELab'
   let msg = 'Not the right buffer'
   if !assert_equal(expected, got, msg)
 
@@ -1192,7 +1192,7 @@ function! s:views() "{{{
     if !assert_equal(expected, got, msg)
 
       let got = getline(1)
-      let expected =  'RELab: Validate'
+      let expected =  'RELab: Validation'
       let msg = 'Not the right title'
       call assert_equal(expected, got, msg)
 
@@ -1238,7 +1238,7 @@ function! s:views() "{{{
     if !assert_equal(expected, got, msg)
 
       let got = getline(1)
-      let expected =  'RELab: Validate'
+      let expected =  'RELab: Validation'
       let msg = 'Not the right title'
       call assert_equal(expected, got, msg)
 
@@ -1259,7 +1259,7 @@ function! s:views() "{{{
   RELabMatches
 
   let got = bufname('%')
-  let expected = 'scratch.relab'
+  let expected = 'RELab'
   let msg = 'Not the right buffer'
   if !assert_equal(expected, got, msg)
 
@@ -1284,7 +1284,7 @@ function! s:views() "{{{
 
     endif
 
-    RELabAnalyze
+    RELabDescribe
 
     let got = line('$')
     let expected = 22
@@ -1292,7 +1292,7 @@ function! s:views() "{{{
     if !assert_equal(expected, got, msg)
 
       let got = getline(1)
-      let expected =  'RELab: Analysis'
+      let expected =  'RELab: Description'
       let msg = 'Not the right title'
       call assert_equal(expected, got, msg)
 
@@ -1307,7 +1307,7 @@ function! s:views() "{{{
 
     endif
 
-    RELabEditSample
+    RELabSample
 
     let got = line('$')
     let expected = 52
@@ -1340,7 +1340,7 @@ function! s:views() "{{{
     if !assert_equal(expected, got, msg)
 
       let got = getline(1)
-      let expected =  'RELab: Validate'
+      let expected =  'RELab: Validation'
       let msg = 'Not the right title'
       call assert_equal(expected, got, msg)
 
@@ -1361,7 +1361,7 @@ function! s:views() "{{{
   RELabValidate
 
   let got = bufname('%')
-  let expected = 'scratch.relab'
+  let expected = 'RELab'
   let msg = 'Not the right buffer'
   if !assert_equal(expected, got, msg)
 
@@ -1371,7 +1371,7 @@ function! s:views() "{{{
     if !assert_equal(expected, got, msg)
 
       let got = getline(1)
-      let expected =  'RELab: Validate'
+      let expected =  'RELab: Validation'
       let msg = 'Not the right title'
       call assert_equal(expected, got, msg)
 
@@ -1386,7 +1386,7 @@ function! s:views() "{{{
 
     endif
 
-    RELabAnalyze
+    RELabDescribe
 
     let got = line('$')
     let expected = 22
@@ -1394,7 +1394,7 @@ function! s:views() "{{{
     if !assert_equal(expected, got, msg)
 
       let got = getline(1)
-      let expected =  'RELab: Analysis'
+      let expected =  'RELab: Description'
       let msg = 'Not the right title'
       call assert_equal(expected, got, msg)
 
@@ -1432,7 +1432,7 @@ function! s:views() "{{{
 
     endif
 
-    RELabEditSample
+    RELabSample
 
     let got = line('$')
     let expected = 52
@@ -1463,7 +1463,7 @@ function! s:views() "{{{
   RELabValidate
 
   let got = bufname('%')
-  let expected = 'scratch.relab'
+  let expected = 'RELab'
   let msg = 'Not the right buffer'
   if !assert_equal(expected, got, msg)
 
@@ -1473,7 +1473,7 @@ function! s:views() "{{{
     if !assert_equal(expected, got, msg)
 
       let got = getline(1)
-      let expected =  'RELab: Validate'
+      let expected =  'RELab: Validation'
       let msg = 'Not the right title'
       call assert_equal(expected, got, msg)
 
@@ -1501,17 +1501,17 @@ function! s:views() "{{{
 
   endif
 
+  silent tabclose!
+  silent execute printf('bwipe! %s', bufnr)
+  unlet! g:relab_no_file
+  call s:reset()
   if exists('nolazyredraw')
     set nolazyredraw
   endif
-  tabclose!
-  execute printf('bwipe! %s', bufnr)
-  unlet! g:relab_no_file
-  call s:reset()
 endfunction "}}}
 
 function! s:reset() "{{{
   call relab#test_helper()
   unlet! g:relab_view
-  silent! bwipe! scratch.relab
+  silent! bwipe! RELab
 endfunction "}}}

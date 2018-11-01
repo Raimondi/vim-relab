@@ -1,12 +1,12 @@
-let g:relab_filepath = get(g:, 'relab_filepath',
+let g:relab_file_path = get(g:, 'relab_filepath',
       \ printf('%s/data.txt', expand('<sfile>:p:h:h')))
 
 command! -nargs=* RELab call relab#set(<q-args>)
 command! -nargs=* -range=% -complete=file RELabGetSample
       \ call relab#get_sample(<line1>, <line2>, <q-args>)
-command! -count RELabLine2Regexp call relab#line2regexp(<count>)
-command! -nargs=* RELabAnalyze call relab#analysis(<q-args>)
-command! RELabEditSample call relab#sample()
+command! -count RELabUseLine call relab#line2regexp(<count>)
+command! -nargs=* RELabDescribe call relab#describe(<q-args>)
+command! RELabSample call relab#sample()
 command! -nargs=* RELabMatches call relab#matches(0, <q-args>)
 command! -nargs=* RELabValidate call relab#matches(1, <q-args>)
 command! -bang TestRELab call relab#tests#run(<bang>0)
@@ -32,9 +32,9 @@ endif
 
 augroup RELab
   autocmd!
-  autocmd TextChanged scratch.relab execute 'DebugRELab ''TextChanged'''
+  autocmd TextChanged RELab execute 'DebugRELab ''TextChanged'''
         \ | call relab#ontextchange()
-  autocmd InsertLeave scratch.relab execute 'DebugRELab ''InsertLeave'''
+  autocmd InsertLeave RELab execute 'DebugRELab ''InsertLeave'''
         \ | call relab#ontextchange()
   autocmd BufRead,BufNewFile RELab setlocal filetype=relab buftype=nofile
         \ noundofile noswapfile
@@ -48,3 +48,4 @@ augroup RELab
           \ | call relab#tests#run()
   endif
 augroup END
+

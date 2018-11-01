@@ -1,9 +1,9 @@
 scriptencoding utf-8
 
-function! relab#analysis(...) "{{{
+function! relab#describe(...) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
-  let view = 'analysis'
+  let view = 'description'
   let regexp = get(a:, 1, '')
   let info = {'view': view}
   if !empty(regexp)
@@ -25,7 +25,7 @@ endfunction "}}}
 function! relab#matches(validate, ...) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
-  let view = a:validate ? 'validate' : 'matches'
+  let view = a:validate ? 'validation' : 'matches'
   let regexp = get(a:, 1, '')
   let info = {'view': view}
   if !empty(regexp)
@@ -68,7 +68,7 @@ function! relab#get_sample(first, last, file) "{{{
   call s:update_info(info)
 endfunction "}}}
 
-function! relab#line2regexp(linenr) "{{{
+function! relab#use_line(linenr) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   let regexp = get(a:, 1, '')
@@ -83,16 +83,23 @@ function! s:set_scratch(lines) "{{{
   11DebugRELab printf('args: %s', a:)
   let lazyredraw = &lazyredraw
   set lazyredraw
-  let fname = 'scratch.relab'
-  let winnr = bufwinnr(fname)
+  let fname = 'RELab'
+  let winnr = bufwinnr(printf('^%s$', fname))
+  12DebugRELab printf('winnr: %s', winnr)
   if bufname('%') ==# fname
+    12DebugRELab printf('Currently in %s nothing to do', fname)
     " buffer is already in the current window
   elseif winnr >= 0
+    12DebugRELab printf('Jump to %s''s window', fname)
     " buffer is in a window in this tab
     execute printf('%swincmd w', winnr)
   else
+    12DebugRELab printf('Split to show %s', fname)
     " buffer is not in any window in the current tab
-    execute printf('botright silent split %s', fname)
+    12DebugRELab printf('botright silent split %s', fname)
+    silent botright silent new
+    execute printf('silent file %s', fname)
+    set filetype=relab
     if empty(&buftype)
       setlocal buftype=nofile
       setlocal noundofile
@@ -102,6 +109,7 @@ function! s:set_scratch(lines) "{{{
       "setlocal undolevels=-1
     endif
   endif
+  12DebugRELab printf('Currently in %s', bufname('%'))
   silent noautocmd %delete _
   undojoin
   noautocmd let lines_set = setline(1, a:lines) == 0
@@ -160,15 +168,15 @@ endfunction "}}}
 function! s:update_info(info) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
-  let file = get(g:, 'relab_filepath', '')
+  let file = get(g:, 'relab_file_path', '')
   if !exists('s:info') "{{{
     " set up s:info
     let first = 1
     let data = filereadable(file) ? readfile(file) : []
     if get(g:, 'relab_no_file', 0) || len(data) < 2
-      " from scratch
+      " if testing or there is incomplete data, then set it up from scratch
       let s:info = get(s:, 'info', {})
-      let s:info.view = 'validate'
+      let s:info.view = 'validation'
       let s:info.regexp = get(s:info, 'regexp',
             \ '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$')
       let s:info.lines = get(s:info, 'lines', [
@@ -227,7 +235,7 @@ function! s:update_info(info) "{{{
             \ 'this\ is"really"not\allowed@example.com',
             \ ])
     else
-      " from the file
+      " otherwise set it up from the file
       let s:info = {}
       let [s:info.view, s:info.regexp; s:info.lines] = data
     endif
@@ -275,7 +283,7 @@ function! s:refresh() "{{{
   11DebugRELab printf('args: %s', a:)
   runtime! syntax/relab.vim
   let view = s:info.view
-  if view ==# 'validate' || view ==# 'matches'
+  if view ==# 'validation' || view ==# 'matches'
     12DebugRELab printf('View: %s', view)
     let title = printf('RELab: %s', substitute(view, '^.', '\u&', ''))
     if !empty(s:info.parser.errors)
@@ -291,7 +299,7 @@ function! s:refresh() "{{{
       let matches = s:get_matches(s:info.parser.capt_groups)
       for item in matches.lines
         13DebugRELab printf('item: %s', item)
-        if empty(item.matches) && view ==# 'validate'
+        if empty(item.matches) && view ==# 'validation'
           13DebugRELab printf('add unmatched line: %s', item.line)
           " add not matched line
           call add(lines, printf('x:%s', item.line))
@@ -312,7 +320,7 @@ function! s:refresh() "{{{
       endif
     endif
     return s:set_scratch(lines)
-  elseif view ==# 'analysis'
+  elseif view ==# 'description'
     12DebugRELab printf('View: %s', view)
     let title = printf('RELab: %s', substitute(view, '^.', '\u&', ''))
     let lines = [title, s:info.regexp]

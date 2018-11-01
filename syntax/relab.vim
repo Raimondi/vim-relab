@@ -12,7 +12,7 @@ let s:save_cpo = &cpoptions
 set cpoptions&vim
 syn case match
 
-let s:is_scratch = expand('%') ==# 'scratch.relab'
+let s:is_scratch = expand('%') ==? 'RELab'
 if s:is_scratch
   " anchor the match to the second line in the scratch buffer
   syn match relabRegExp /^\%2l.*$/ 
