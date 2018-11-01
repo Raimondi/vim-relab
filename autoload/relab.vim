@@ -85,6 +85,7 @@ function! s:set_scratch(lines) "{{{
   set lazyredraw
   let fname = 'RELab'
   let winnr = bufwinnr(printf('^%s$', fname))
+  let bufnr = bufnr(printf('^%s$', fname))
   12DebugRELab printf('winnr: %s', winnr)
   if bufname('%') ==# fname
     12DebugRELab printf('Currently in %s nothing to do', fname)
@@ -93,10 +94,13 @@ function! s:set_scratch(lines) "{{{
     12DebugRELab printf('Jump to %s''s window', fname)
     " buffer is in a window in this tab
     execute printf('%swincmd w', winnr)
-  else
+  elseif bufnr >= 0
     12DebugRELab printf('Split to show %s', fname)
-    " buffer is not in any window in the current tab
-    12DebugRELab printf('botright silent split %s', fname)
+    " buffer exists but it isn't in any window in the current tab
+    execute printf('botright silent split %s', fname)
+  else
+    12DebugRELab printf('Create a new buffer for %s', fname)
+    " the buffer doesn't exists, we need to create it
     silent botright silent new
     execute printf('silent file %s', fname)
     set filetype=relab
@@ -109,13 +113,71 @@ function! s:set_scratch(lines) "{{{
       "setlocal undolevels=-1
     endif
   endif
+  if a:lines == getline(1, '$')
+    12DebugRELab printf('No need to change the lines')
+    " The current lines in the buffer are the ones we need, probably undo was
+    " used. Let's leave things as they are.
+    return
+  elseif get(g:, 'relab_debug', 0)
+    let i = 0
+    while i < len(a:lines) && i < line('$')
+      if a:lines[i] != getline(i)
+        13DebugRELab printf('%s:%s', i + 1, getline(i))
+        13DebugRELab printf('%s:%s', i + 1, a:lines[i])
+      endif
+      let i += 1
+    endwhile
+  endif
   12DebugRELab printf('Currently in %s', bufname('%'))
+  undojoin
   silent noautocmd %delete _
   undojoin
   noautocmd let lines_set = setline(1, a:lines) == 0
   if lines_set
     undojoin
   endif
+  let &lazyredraw = lazyredraw
+  return lines_set
+endfunction "}}}
+
+function! s:set_temp(lines) "{{{
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
+  let lazyredraw = &lazyredraw
+  set lazyredraw
+  let fname = 'RELab_temp'
+  let winnr = bufwinnr(printf('^%s$', fname))
+  let bufnr = bufnr(printf('^%s$', fname))
+  12DebugRELab printf('winnr: %s', winnr)
+  if bufname('%') ==# fname
+    12DebugRELab printf('Currently in %s nothing to do', fname)
+    " buffer is already in the current window
+  else
+    12DebugRELab printf('Create a new buffer for %s', fname)
+    " the buffer doesn't exists, we need to create it
+    if bufname('%') ==# 'RELab'
+      execute printf('silent edit! %s', fname)
+    else
+      execute printf('silent split! %s', fname)
+    endif
+    if empty(&buftype)
+      setlocal buftype=nofile
+      setlocal noundofile
+      setlocal noswapfile
+      setlocal nonumber
+      setlocal norelativenumber
+      setlocal undolevels=-1
+    endif
+  endif
+  if a:lines == getline(1, '$')
+    12DebugRELab printf('No need to change the lines')
+    " The current lines in the buffer are the ones we need, probably undo was
+    " used. Let's leave things as they are.
+    return
+  endif
+  12DebugRELab printf('Currently in %s', bufname('%'))
+  silent noautocmd %delete _
+  noautocmd let lines_set = setline(1, a:lines) == 0
   let &lazyredraw = lazyredraw
   return lines_set
 endfunction "}}}
@@ -160,8 +222,9 @@ function! s:get_matches(groups) "{{{
     call add(self.lines, self.current)
   endfunction
   " set buffer to the sample lines
-  call s:set_scratch(s:info.lines)
+  call s:set_temp(s:info.lines)
   silent! g/^/call matches.run(escape(s:info.regexp, '/'))
+  silent bdelete! RELab_temp
   return matches
 endfunction "}}}
 
@@ -239,6 +302,12 @@ function! s:update_info(info) "{{{
       let s:info = {}
       let [s:info.view, s:info.regexp; s:info.lines] = data
     endif
+    " open the RELab buffer now with the cheapest view, so opening RELab_temp
+    " doesn't affect other buffers.
+    let view = s:info.view
+    let s:info.view = 'sample'
+    call s:refresh()
+    let s:info.view = view
   endif "}}}
   let info = filter(copy(s:info), 'v:key !=# ''parser''')
   11DebugRELab printf('a:info: %s', a:info)
@@ -343,12 +412,6 @@ function! relab#ontextchange() "{{{
   11DebugRELab printf('args: %s', a:)
   let info = filter(copy(s:info), 'v:key !=# ''parser''')
   11DebugRELab printf('s:info: %s', info)
-  let mode = mode()
-  echom 'mode: ' .mode
-  if mode ==# 'i'
-    12DebugRELab printf('DO nothing while on insert mode')
-    return
-  endif
   if s:info.view ==# 'sample'
     12DebugRELab printf('View: sample')
     let lines = getline(1, '$')

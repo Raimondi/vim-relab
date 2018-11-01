@@ -1,5 +1,5 @@
 let g:relab_file_path = get(g:, 'relab_filepath',
-      \ printf('%s/data.txt', expand('<sfile>:p:h:h')))
+      \ printf('%s/relab_data.txt', expand('<sfile>:p:h:h')))
 
 command! -nargs=* RELab call relab#set(<q-args>)
 command! -nargs=* -range=% -complete=file RELabGetSample
