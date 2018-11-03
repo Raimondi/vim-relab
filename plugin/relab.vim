@@ -32,13 +32,8 @@ endif
 
 augroup RELab
   autocmd!
-  autocmd TextChanged RELab execute 'DebugRELab ''TextChanged'''
-        \ | call relab#ontextchange()
-  autocmd InsertLeave RELab execute 'DebugRELab ''InsertLeave'''
-        \ | call relab#ontextchange()
-  autocmd BufRead,BufNewFile RELab setlocal filetype=relab buftype=nofile
-        \ noundofile noswapfile
-  autocmd ColorScheme * call s:hi_colors()
+  autocmd TextChanged  RELab call relab#ontextchange('textchanged')
+  autocmd TextChangedI RELab call relab#ontextchange('textchangedi')
 
   if exists('g:relab_debug')
     autocmd BufWritePost relab.vim,*/relab/*.vim source <afile>

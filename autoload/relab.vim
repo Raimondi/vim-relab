@@ -11,7 +11,7 @@ function! relab#describe(...) "{{{
     let info.regexp = regexp
   endif
   " Show analysis view
-  return s:update_info(info)
+  return s:update_info(info, 0)
 endfunction "}}}
 
 function! relab#sample() "{{{
@@ -19,7 +19,7 @@ function! relab#sample() "{{{
   11DebugRELab printf('args: %s', a:)
   let view = 'sample'
   " Show sample view
-  return s:update_info({'view': view})
+  return s:update_info({'view': view}, 0)
 endfunction "}}}
 
 function! relab#matches(validate, ...) "{{{
@@ -32,7 +32,7 @@ function! relab#matches(validate, ...) "{{{
     " Only change info.regexp if it's not empty
     let info.regexp = regexp
   endif
-  return s:update_info(info)
+  return s:update_info(info, 0)
 endfunction "}}}
 
 function! relab#set(...) "{{{
@@ -44,7 +44,7 @@ function! relab#set(...) "{{{
     " Only change info.regexp if it's not empty
     let info.regexp = regexp
   endif
-  return s:update_info(info)
+  return s:update_info(info, 0)
 endfunction "}}}
 
 function! relab#get_sample(first, last, file) "{{{
@@ -65,7 +65,7 @@ function! relab#get_sample(first, last, file) "{{{
   let info = {}
   let info.view = 'sample'
   let info.lines = lines
-  call s:update_info(info)
+  call s:update_info(info, 0)
 endfunction "}}}
 
 function! relab#use_line(linenr) "{{{
@@ -75,10 +75,10 @@ function! relab#use_line(linenr) "{{{
   " use the count if it was given
   let linenr = a:linenr > 0 ? a:linenr : '.'
   let regexp = getline(linenr)
-  return s:update_info({'regexp': regexp})
+  return s:update_info({'regexp': regexp}, 0)
 endfunction "}}}
 
-function! s:set_scratch(lines) "{{{
+function! s:set_scratch(lines, undojoin) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   let lazyredraw = &lazyredraw
@@ -129,13 +129,14 @@ function! s:set_scratch(lines) "{{{
     endwhile
   endif
   12DebugRELab printf('Currently in %s', bufname('%'))
-  undojoin
-  silent noautocmd %delete _
-  undojoin
-  noautocmd let lines_set = setline(1, a:lines) == 0
-  if lines_set
+  if a:undojoin
     undojoin
   endif
+  if line('$') > 1
+    silent noautocmd %delete _
+    undojoin
+  endif
+  noautocmd let lines_set = setline(1, a:lines) == 0
   let &lazyredraw = lazyredraw
   return lines_set
 endfunction "}}}
@@ -228,7 +229,7 @@ function! s:get_matches(groups) "{{{
   return matches
 endfunction "}}}
 
-function! s:update_info(info) "{{{
+function! s:update_info(info, undojoin) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   let file = get(g:, 'relab_file_path', '')
@@ -306,7 +307,7 @@ function! s:update_info(info) "{{{
     " doesn't affect other buffers.
     let view = s:info.view
     let s:info.view = 'sample'
-    call s:refresh()
+    call s:refresh(a:undojoin)
     let s:info.view = view
   endif "}}}
   let info = filter(copy(s:info), 'v:key !=# ''parser''')
@@ -344,10 +345,10 @@ function! s:update_info(info) "{{{
     " write info to file if enabled
     call writefile(data, file, 's')
   endif
-  return s:refresh()
+  return s:refresh(a:undojoin)
 endfunction "}}}
 
-function! s:refresh() "{{{
+function! s:refresh(undojoin) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   runtime! syntax/relab.vim
@@ -388,18 +389,18 @@ function! s:refresh() "{{{
         call add(lines, 'No matches found')
       endif
     endif
-    return s:set_scratch(lines)
+    return s:set_scratch(lines, a:undojoin)
   elseif view ==# 'description'
     12DebugRELab printf('View: %s', view)
     let title = printf('RELab: %s', substitute(view, '^.', '\u&', ''))
     let lines = [title, s:info.regexp]
     let lines += s:info.parser.lines()
-    return s:set_scratch(lines)
+    return s:set_scratch(lines, a:undojoin)
   elseif view ==# 'sample'
     12DebugRELab printf('View: %s', view)
     syntax clear
     " set buffer contents to sample lines
-    return s:set_scratch(s:info.lines)
+    return s:set_scratch(s:info.lines, a:undojoin)
   else
     12DebugRELab printf('View: %s', view)
     echoerr printf('RELab error 1: invalid view: %s', view)
@@ -407,11 +408,17 @@ function! s:refresh() "{{{
   endif
 endfunction "}}}
 
-function! relab#ontextchange() "{{{
+function! relab#ontextchange(event) "{{{
+  " TODO fix :undoing into other views
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   let info = filter(copy(s:info), 'v:key !=# ''parser''')
   11DebugRELab printf('s:info: %s', info)
+  " only use :undojoin when a new change has been made
+  let undotree = undotree()
+  let last_seq = get(undotree.entries, -1, {})
+  let undojoin = a:event ==? 'textchangedi'
+        \ || undotree.seq_cur == get(last_seq, 'seq', -1)
   if s:info.view ==# 'sample'
     12DebugRELab printf('View: sample')
     let lines = getline(1, '$')
@@ -419,7 +426,7 @@ function! relab#ontextchange() "{{{
       " nothing to update
       return
     endif
-    return s:update_info({'lines': lines})
+  return s:update_info({'lines': lines}, undojoin)
   endif
   12DebugRELab printf('View: not in sample')
   if line('$') < 2
@@ -434,7 +441,7 @@ function! relab#ontextchange() "{{{
     return
   endif
   let curpos = getcurpos()
-  call s:update_info({'regexp': regexp})
+  call s:update_info({'regexp': regexp}, undojoin)
   return setpos('.', curpos)
 endfunction "}}}
 
@@ -442,6 +449,6 @@ function! relab#test_helper(...) "{{{
   if !a:0
     unlet! s:info
   elseif type(a:1) == v:t_dict
-    call s:update_info(a:1)
+    call s:update_info(a:1, get(a:, 2, 1))
   endif
 endfunction "}}}
