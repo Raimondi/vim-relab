@@ -1004,17 +1004,17 @@ function! s:views() "{{{
     RELabSample
 
     let got = line('$')
-    let expected = 52
+    let expected = 54
     let msg = 'Wrong number of lines'
     if !assert_equal(expected, got, msg)
 
-      let got = getline(1)
+      let got = getline(3)
       let expected =  'This is some text to play with your regular '
             \ . 'expressions'
       let msg = 'Wrong line content'
       call assert_equal(expected, got, msg)
 
-      let got = getline(2)
+      let got = getline(4)
       let expected =  'Read :help relab'
       let msg = 'Wrong line content'
       call assert_equal(expected, got, msg)
@@ -1083,17 +1083,17 @@ function! s:views() "{{{
     RELabSample
 
     let got = line('$')
-    let expected = 52
+    let expected = 54
     let msg = 'Wrong number of lines'
     if !assert_equal(expected, got, msg)
 
-      let got = getline(1)
+      let got = getline(3)
       let expected =  'This is some text to play with your regular '
             \ . 'expressions'
       let msg = 'Wrong line content'
       call assert_equal(expected, got, msg)
 
-      let got = getline(2)
+      let got = getline(4)
       let expected =  'Read :help relab'
       let msg = 'Wrong line content'
       call assert_equal(expected, got, msg)
@@ -1162,17 +1162,17 @@ function! s:views() "{{{
   if !assert_equal(expected, got, msg)
 
     let got = line('$')
-    let expected = 52
+    let expected = 54
     let msg = 'Wrong number of lines'
     if !assert_equal(expected, got, msg)
 
-      let got = getline(1)
+      let got = getline(3)
       let expected =  'This is some text to play with your regular '
             \ . 'expressions'
       let msg = 'Wrong line content'
       call assert_equal(expected, got, msg)
 
-      let got = getline(2)
+      let got = getline(4)
       let expected =  'Read :help relab'
       let msg = 'Wrong line content'
       call assert_equal(expected, got, msg)
@@ -1310,17 +1310,17 @@ function! s:views() "{{{
     RELabSample
 
     let got = line('$')
-    let expected = 52
+    let expected = 54
     let msg = 'Wrong number of lines'
     if !assert_equal(expected, got, msg)
 
-      let got = getline(1)
+      let got = getline(3)
       let expected =  'This is some text to play with your regular '
             \ . 'expressions'
       let msg = 'Wrong line content'
       call assert_equal(expected, got, msg)
 
-      let got = getline(2)
+      let got = getline(4)
       let expected =  'Read :help relab'
       let msg = 'Wrong line content'
       call assert_equal(expected, got, msg)
@@ -1435,17 +1435,17 @@ function! s:views() "{{{
     RELabSample
 
     let got = line('$')
-    let expected = 52
+    let expected = 54
     let msg = 'Wrong number of lines'
     if !assert_equal(expected, got, msg)
 
-      let got = getline(1)
+      let got = getline(3)
       let expected =  'This is some text to play with your regular '
             \ . 'expressions'
       let msg = 'Wrong line content'
       call assert_equal(expected, got, msg)
 
-      let got = getline(2)
+      let got = getline(4)
       let expected =  'Read :help relab'
       let msg = 'Wrong line content'
       call assert_equal(expected, got, msg)

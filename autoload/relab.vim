@@ -132,7 +132,7 @@ function! s:set_scratch(lines, undojoin) "{{{
   if a:undojoin
     undojoin
   endif
-  if line('$') > 1
+  if line('$') > 1 || !empty(getline(1))
     silent noautocmd %delete _
     undojoin
   endif
@@ -234,6 +234,9 @@ function! s:update_info(info, undojoin) "{{{
   11DebugRELab printf('args: %s', a:)
   let file = get(g:, 'relab_file_path', '')
   if !exists('s:info') "{{{
+    " open the RELab buffer, so opening RELab_temp doesn't affect other
+    " buffers.
+    call s:set_scratch([], 0)
     " set up s:info
     let first = 1
     let data = filereadable(file) ? readfile(file) : []
@@ -303,12 +306,6 @@ function! s:update_info(info, undojoin) "{{{
       let s:info = {}
       let [s:info.view, s:info.regexp; s:info.lines] = data
     endif
-    " open the RELab buffer now with the cheapest view, so opening RELab_temp
-    " doesn't affect other buffers.
-    let view = s:info.view
-    let s:info.view = 'sample'
-    call s:refresh(a:undojoin)
-    let s:info.view = view
   endif "}}}
   let info = filter(copy(s:info), 'v:key !=# ''parser''')
   11DebugRELab printf('a:info: %s', a:info)
@@ -399,8 +396,12 @@ function! s:refresh(undojoin) "{{{
   elseif view ==# 'sample'
     12DebugRELab printf('View: %s', view)
     syntax clear
+    syntax match relabComment /^\%2l-\+/
+    let title = printf('RELab: %s', substitute(view, '^.', '\u&', ''))
+    let lines = [title, substitute(title, '.', '-', 'g')]
+    let lines += s:info.lines
     " set buffer contents to sample lines
-    return s:set_scratch(s:info.lines, a:undojoin)
+    return s:set_scratch(lines, a:undojoin)
   else
     12DebugRELab printf('View: %s', view)
     echoerr printf('RELab error 1: invalid view: %s', view)
@@ -409,39 +410,67 @@ function! s:refresh(undojoin) "{{{
 endfunction "}}}
 
 function! relab#ontextchange(event) "{{{
-  " TODO fix :undoing into other views
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
   let info = filter(copy(s:info), 'v:key !=# ''parser''')
   11DebugRELab printf('s:info: %s', info)
-  " only use :undojoin when a new change has been made
+  " only use :undojoin when a new change has been made to avoid errors during
+  " undo/redo
   let undotree = undotree()
   let last_seq = get(undotree.entries, -1, {})
-  let undojoin = a:event ==? 'textchangedi'
-        \ || undotree.seq_cur == get(last_seq, 'seq', -1)
-  if s:info.view ==# 'sample'
-    12DebugRELab printf('View: sample')
-    let lines = getline(1, '$')
-    if lines == s:info.lines
-      " nothing to update
+  let is_new_seq = undotree.seq_cur == get(last_seq, 'seq', -1)
+  let undojoin = a:event ==? 'textchangedi' || is_new_seq
+  let header = getline(1,2)
+  let view = tolower(matchstr(get(header, 0, ''), '^RELab: \zs\w\+$'))
+  12DebugRELab printf('View: %s', view)
+  let info = {}
+  let info.view = view
+  if view !~? '\m^\%(validation\|matches\|description\|sample\)$'
+    " last change broke the first line
+    stopinsert
+    if undotree.seq_cur > 0
+      12DebugRELab printf('Undo!')
+      " unroll last change
+      silent undo
+      echohl ErrorMsg
+      echom 'RELab: do not change the header!'
+      echohl Normal
+    else
+      12DebugRELab printf('Redo!')
+      " we were undone all the way to the original empty buffer and that's not
+      " a good look, let's go forward
+      silent redo
+    endif
+    if exists('nolazyredraw')
+      set nolazyredraw
+    endif
+    return
+  endif
+  if view ==? 'sample'
+    if getline(2) !=# '-------------'
+      stopinsert
+      undo
+      echohl ErrorMsg
+      echom 'RELab: do not change the header!'
+      echohl Normal
+      if exists('nolazyredraw')
+        set nolazyredraw
+      endif
       return
     endif
-  return s:update_info({'lines': lines}, undojoin)
+    let info.lines = getline(3, '$')
+  else
+    let info.regexp = get(header, 1, '')
   endif
-  12DebugRELab printf('View: not in sample')
-  if line('$') < 2
-    12DebugRELab printf('There is no regexp to be found')
-    " regexp should be on line 2, nothing to update
-    return
-  endif
-  let regexp = getline(2)
-  if regexp ==# s:info.regexp
-    12DebugRELab printf('The new regexp is the same: %s', regexp)
-    " nothing to update
-    return
+  if !&lazyredraw
+    let nolazyredraw
+    set lazyredraw
   endif
   let curpos = getcurpos()
-  call s:update_info({'regexp': regexp}, undojoin)
+  call s:update_info(info, undojoin)
+  if exists('nolazyredraw')
+    set nolazyredraw
+  endif
   return setpos('.', curpos)
 endfunction "}}}
 

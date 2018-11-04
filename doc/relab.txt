@@ -43,9 +43,9 @@ view and the final text will be used for the other views.
 
 						*relab-regexp-collection*
 Any file with the .relab extension is considered as a collection of regexp and
-will have syntax highlighting. Lines starting with a space will highlighted as
-comments, but that's the only difference from the other lines. if mappings are
-enabled, <leader>rl will load the current line as a regexp.
+will have syntax highlighting. Lines starting with a space will be highlighted
+as comments, but that's the only difference from the other lines. if mappings
+are enabled, <leader>rl will load the current line as a regexp.
 
 						*relab-views*
 DESCRIPTION VIEW				*relab-description-view*
@@ -75,6 +75,8 @@ Shows the sample text that will be used with the given regex. Any edits to the
 text while in this view will be preserved for the other views.
 >
 	+---------------------------------------------------------------+
+	|RELab: Sample							|
+	|-------------							|
 	|Some email addresses to play with				|
 	|								|
 	|email@example.com						|
@@ -83,8 +85,6 @@ text while in this view will be preserved for the other views.
 	|firstname+lastname@example.com					|
 	|email@123.123.123.123						|
 	|email@[123.123.123.123]					|
-	|~								|
-	|~								|
 	|~								|
 	|~								|
 	|~								|
@@ -143,11 +143,11 @@ EX COMMANDS					*relab-ex-commands*
 
 
 						*:RELabDescribe*
-:RELabDescribe [regexp]	Show the analyze view and use [regexp] if provided.
+:RELabDescribe [regexp]	Show the description view and use [regexp] if provided.
 
 
 						*:RELabSample*
-:RELabSample		Show the sample view.
+:RELabSample		Show the sample text view.
 
 						*:RELabGetSample*
 :[range]RELabGetSample	Get the lines in [range] from the current buffer and
@@ -204,6 +204,7 @@ An additional mapping is defined for files with regexp collections (ending in
 						*relab-rl*
 <leader>rl		Run |:RELabUseLine| on the current line.
 
+==============================================================================
 
 
 
