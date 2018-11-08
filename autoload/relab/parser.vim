@@ -12,7 +12,10 @@ for line in readfile(printf('%s/%s', expand('<sfile>:p:h'), 'id_key.txt'))
   endif
 endfor
 
-function! s:init(...) dict "{{{
+" parser.init([separator]) {{{
+" reset the parser to its initial state
+" return the parser
+function! s:init(...) dict
   " reset parser
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
@@ -46,7 +49,10 @@ function! s:init(...) dict "{{{
   return self
 endfunction "}}}
 
-function! s:magic() dict "{{{
+" parser.magic() {{{
+" TODO should be part of node instead?
+" return the \m value of the current token
+function! s:magic() dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
   if self.magicness ==# 'M'
@@ -75,7 +81,10 @@ function! s:magic() dict "{{{
   return self.token
 endfunction "}}}
 
-function! s:id() dict "{{{
+" parser.id() {{{
+" TODO should be part of node instead?
+" return the string used to retrieve the description from s:id_map
+function! s:id() dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
   let magic_token = self.magic()
@@ -136,13 +145,19 @@ function! s:id() dict "{{{
   return magic_token
 endfunction "}}}
 
-function! s:help_tag(node) dict "{{{
+" parser.help_tag(node) {{{
+" TODO should be part of node instead?
+" return the key used to retrieve the help tag from s:id_map
+function! s:help_tag(node) dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
   return get(get(self.id_map, a:node.id, {}), 'help_tag', '')
 endfunction "}}}
 
-function! s:line(node, ...) dict "{{{
+" parser.line(node) {{{
+" TODO should be part of node instead?
+" return the description of the given node
+function! s:line(node) dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:000)
   " get the line corresponding to the given node
@@ -298,7 +313,9 @@ function! s:line(node, ...) dict "{{{
   return line
 endfunction "}}}
 
-function! s:lines() dict "{{{
+" parser.lines() {{{
+" return a list of descriptions of every item in the parsed regexp
+function! s:lines() dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
   let lines = []
@@ -306,10 +323,13 @@ function! s:lines() dict "{{{
     return extend(lines, self.errors[0].error)
   endif
   call add(lines, '')
-  return extend(lines, map(copy(self.sequence), 'v:val.line'))
+  return extend(lines, map(copy(self.sequence), 'self.line(v:val)'))
 endfunction "}}}
 
-function! s:match_group(line_offset, ...) dict "{{{
+" parser.match_group(line_offset[, group_number])  {{{
+" return a regexp that will match the given capturing group of the currently
+" parsed regexp
+function! s:match_group(line_offset, ...) dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
   " generate a regexp that will match the given capturing group of the
@@ -437,11 +457,12 @@ function! s:match_group(line_offset, ...) dict "{{{
   return group_re
 endfunction "}}}
 
-function! s:match_groups(...) dict "{{{
+" parser.match_groups(...) {{{
+" return a list of regexps that match the capturing groups in the currently
+" parsed regexp
+function! s:match_groups(...) dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
-  " return a list of regexps that match the capturing groups in the currently
-  " parsed regexp
   23DebugRELab printf('match group: regexp: %s', self.input)
   let offset = get(a:, 1, 0)
   let groups = []
@@ -452,43 +473,49 @@ function! s:match_groups(...) dict "{{{
   return filter(groups, '!empty(v:val)')
 endfunction "}}}
 
-function! s:in_optional_group() dict "{{{
+" parser.in_optional_group() {{{
+" we are currently between \%[ and ]
+function! s:in_optional_group() dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
-  " we are currently between \%[ and ]
   return get(get(self.nest_stack, -1, {}), 'id', '') ==# '\%['
 endfunction "}}}
 
-function! s:map(key) dict "{{{
+" parser.map(key) {{{
+" helper function to generate the other s:<plural>() functions
+function! s:map(key) dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
-  " helper function to generate the other s:<plural>() functions
   return map(copy(self.sequence), 'get(v:val, a:key, '''')')
 endfunction "}}}
 
-function! s:magics() dict "{{{
+" parser.magics() {{{
+" return a list of every node's magic value
+function! s:magics() dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
-  " return a list of every node's magic value
   return map(copy(self.sequence), 'v:val.magic')
 endfunction "}}}
 
-function! s:values() dict "{{{
+" parser.values() {{{
+" return a list of every node's original value
+function! s:values() dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
-  " return a list of every node's original value
   return map(copy(self.sequence), 'get(v:val, ''value'', '''')')
 endfunction "}}}
 
-function! s:ids() dict "{{{
-  " return a list of every node's id
+" parser.ids() {{{
+" return a list of every node's id
+function! s:ids() dict
   return map(copy(self.sequence), 'get(v:val, ''id'', '''')')
 endfunction "}}}
 
-function! s:collection_ends() dict "{{{
+" parser.collection_ends() {{{
+" look forward for a closing ]
+function! s:collection_ends() dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
-  " look forward for a closing ]
   let ahead = strcharpart(self.input, self.pos)
   if ahead[0] ==# '^'
     return ahead =~# '\m^\^\%(\\[-ebrtndoxuU^$\]]\|[^\]]\)\+]'
@@ -499,7 +526,9 @@ function! s:collection_ends() dict "{{{
   return ahead =~# '\m^\^\?\%(\\[-ebrtndoxuU^$\]]\|[^\]]\)\+]'
 endfunction "}}}
 
-function! s:add_error(node, ...) dict "{{{
+" parser.add_error(node, {{{
+" handles adding an error
+function! s:add_error(node, ...) dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
   let a:node.is_error = 1
@@ -512,7 +541,9 @@ function! s:add_error(node, ...) dict "{{{
   call add(self.errors, a:node)
 endfunction "}}}
 
-function! s:incomplete_in_coll() dict "{{{
+" parser.incomplete_in_coll() {{{
+" return 1 if the token is incomplete, 0 otherwise
+function! s:incomplete_in_coll() dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
   let next = self.token . strcharpart(self.input, self.pos)
@@ -591,7 +622,9 @@ function! s:incomplete_in_coll() dict "{{{
   endif
 endfunction "}}}
 
-function! s:is_incomplete() dict "{{{
+" parser.is_incomplete() {{{
+" return 1 if the token is incomplete, 0 otherwise
+function! s:is_incomplete() dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
   " check if self.token is incomplete
@@ -641,7 +674,10 @@ function! s:is_incomplete() dict "{{{
   return 0
 endfunction "}}}
 
-function! s:next() dict "{{{
+" parser.next() {{{
+" finds the next token and stores it in parser.token
+" returns 1 if a token was found, 0 otherwise.
+function! s:next() dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
   " put the next token into self.token
@@ -674,7 +710,9 @@ function! s:next() dict "{{{
   return !empty(self.token)
 endfunction "}}}
 
-function! s:parse(input) dict "{{{
+" parser.parse(input) {{{
+" parses the input and returns the parser.
+function! s:parse(input) dict
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
   " parse the given regexp
@@ -1014,7 +1052,7 @@ function! s:parse(input) dict "{{{
       let node.id = node.ignorecase ? 'x' : 'X'
     endif
     " add a description
-    let node.line = node.is_error ? '' : self.line(node)
+    "let node.line = node.is_error ? '' : self.line(node)
   endwhile
   if !empty(self.nest_stack)
     23DebugRELab  printf('parse -> non-empty nest stack')
@@ -1036,7 +1074,10 @@ function! s:parse(input) dict "{{{
   return self
 endfunction "}}}
 
-function! relab#parser#new(...) "{{{
+" relab#parser#new([separator]) {{{
+" returns a Vim regexp parser that will consider the given separator when
+" parsing the input.
+function! relab#parser#new(...)
   21DebugRELab printf('%s:', expand('<sfile>'))
   21DebugRELab printf('args: %s', a:)
   let parser = {}
