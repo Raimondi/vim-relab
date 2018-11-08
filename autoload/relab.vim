@@ -17,7 +17,7 @@ endfunction "}}}
 function! relab#sample() "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
-  let view = 'sample'
+  let view = 'sample text'
   " Show sample view
   return s:update_info({'view': view}, 0)
 endfunction "}}}
@@ -63,7 +63,7 @@ function! relab#get_sample(first, last, file) "{{{
   endif
   " update with new info
   let info = {}
-  let info.view = 'sample'
+  let info.view = 'sample text'
   let info.lines = lines
   call s:update_info(info, 0)
 endfunction "}}}
@@ -110,7 +110,6 @@ function! s:set_scratch(lines, undojoin) "{{{
       setlocal noswapfile
       setlocal nonumber
       setlocal norelativenumber
-      "setlocal undolevels=-1
     endif
   endif
   if a:lines == getline(1, '$')
@@ -352,7 +351,7 @@ function! s:refresh(undojoin) "{{{
   let view = s:info.view
   if view ==# 'validation' || view ==# 'matches'
     12DebugRELab printf('View: %s', view)
-    let title = printf('RELab: %s', substitute(view, '^.', '\u&', ''))
+    let title = printf('RELab: %s', substitute(view, '\<\w\+\>', '\u&', 'g'))
     if !empty(s:info.parser.errors)
       12DebugRELab printf('We have errors:')
       " the regexp has errors, report them
@@ -393,11 +392,11 @@ function! s:refresh(undojoin) "{{{
     let lines = [title, s:info.regexp]
     let lines += s:info.parser.lines()
     return s:set_scratch(lines, a:undojoin)
-  elseif view ==# 'sample'
+  elseif view ==# 'sample text'
     12DebugRELab printf('View: %s', view)
     syntax clear
-    syntax match relabComment /^\%2l-\+/
-    let title = printf('RELab: %s', substitute(view, '^.', '\u&', ''))
+    syntax match relabComment /^\%2l-\+$/
+    let title = printf('RELab: %s', substitute(view, '\<\w\+\>', '\u&', 'g'))
     let lines = [title, substitute(title, '.', '-', 'g')]
     let lines += s:info.lines
     " set buffer contents to sample lines
@@ -421,11 +420,11 @@ function! relab#ontextchange(event) "{{{
   let is_new_seq = undotree.seq_cur == get(last_seq, 'seq', -1)
   let undojoin = a:event ==? 'textchangedi' || is_new_seq
   let header = getline(1,2)
-  let view = tolower(matchstr(get(header, 0, ''), '^RELab: \zs\w\+$'))
+  let view = tolower(matchstr(get(header, 0, ''), '^RELab: \zs.\+$'))
   12DebugRELab printf('View: %s', view)
   let info = {}
   let info.view = view
-  if view !~? '\m^\%(validation\|matches\|description\|sample\)$'
+  if view !~? '\m^\%(validation\|matches\|description\|sample text\)$'
     " last change broke the first line
     stopinsert
     if undotree.seq_cur > 0
@@ -446,8 +445,8 @@ function! relab#ontextchange(event) "{{{
     endif
     return
   endif
-  if view ==? 'sample'
-    if getline(2) !=# '-------------'
+  if view ==? 'sample text'
+    if getline(2) !~# '^-\+$'
       stopinsert
       undo
       echohl ErrorMsg
