@@ -1,4 +1,4 @@
-# RELab: A Playground for Vim Regular Expressions
+# RELab: a playground for Vim regular expressions
 
 Vim's regular expressions (regexp) can be a bit different from what people is
 used to nowadays, RELab provides some tools to help with understanding how
@@ -14,7 +14,7 @@ to other view. Whenever the regexp is shown it can be edited and the result
 with be automatically updated and stored for the other views.
 
 
-## DESCRIPTION VIEW
+## Description View
 
 Shows the description of every element of the current regexp. Get to this view
 with `:RELabDescribe` or `<leader>rd`.
@@ -37,7 +37,7 @@ with `:RELabDescribe` or `<leader>rd`.
 	+---------------------------------------------------------------+
 ```
 
-## MATCHES VIEW
+## Matches View
 
 Display every line of the sample text that is matched by the current regexp.
 Also show the matched text for every matched line. Both `:RELabMatches` and
@@ -61,7 +61,7 @@ Also show the matched text for every matched line. Both `:RELabMatches` and
 	+---------------------------------------------------------------+
 ```
 
-## VALIDATION VIEW	
+## Validation View
 
 Every line of the sample text is marked as matched (with +) or unmatched (with
 x) by the current regexp. Also show the matched text for every matched line.
@@ -85,7 +85,7 @@ The command `:RELabValidate` or the mapping in `<leader>rv` bring you here.
 	+---------------------------------------------------------------+
 ```
 
-## SAMPLE VIEW
+## Sample Text View
 
 Shows the sample text that will be used with the given regex. Any edits to the
 text while in this view will be preserved for the other views. In order to
@@ -95,7 +95,7 @@ from another file.
 
 ```
 	+---------------------------------------------------------------+
-	|RELab: Sample							|
+	|RELab: Sample Text						|
 	|-------------							|
 	|Some email addresses to play with				|
 	|								|

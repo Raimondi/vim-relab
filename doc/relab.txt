@@ -21,8 +21,8 @@ Contents					*relab-contents* *relab*
 - Reference			|relab-reference|
   - Collections			|relab-collections|
   - Ex Commands			|relab-ex-commands|
-  - Configuration		|relab-configuration|  
-  - Mappings			|relab-mappings|  
+  - Configuration		|relab-configuration|
+  - Mappings			|relab-mappings|
 
 ==============================================================================
 Introduction					*relab-intro*
@@ -133,7 +133,7 @@ The command |:RELabValidate| or the mapping in |relab-rv| bring you here.
 	+---------------------------------------------------------------+
 <
 
-SAMPLE VIEW					*relab-sample-text-view*
+SAMPLE TEXT VIEW				*relab-sample-text-view*
 
 Shows the sample text that will be used with the given regex. Any edits to the
 text while in this view will be preserved for the other views. In order to
@@ -142,7 +142,7 @@ also open this view and get the sample text from the current buffer or read
 from another file.
 >
 	+---------------------------------------------------------------+
-	|RELab: Sample							|
+	|RELab: Sample Text						|
 	|-------------							|
 	|Some email addresses to play with				|
 	|								|
