@@ -185,11 +185,15 @@ endfunction "}}}
 function! s:get_matches(groups) "{{{
   11DebugRELab printf('%s:', expand('<sfile>'))
   11DebugRELab printf('args: %s', a:)
+  if len(get(s:info.cache, s:info.regexp, [])) == 2
+    12DebugRELab printf('Return the cached matches')
+    return s:info.cache[s:info.regexp][1]
+  endif
   let matches = {}
   let matches.lines = []
   let matches.submatches = join(map(range(a:groups + 1),
         \ {key, val -> 'submatch('.val.')'}), ',')
-  function matches.get(...)
+  function matches.get(...) "{{{
     14DebugRELab printf('%s:', expand('<sfile>'))
     14DebugRELab printf('args: %s', a:)
     " append matches
@@ -220,12 +224,110 @@ function! s:get_matches(groups) "{{{
     execute printf('silent! s/%s/\=self.get(%s)/g', a:regexp, self.submatches)
     14DebugRELab printf('current: %s', self.current)
     call add(self.lines, self.current)
-  endfunction
+  endfunction "}}}
   " set buffer to the sample lines
   call s:set_temp(s:info.lines)
   silent! g/^/call matches.run(escape(s:info.regexp, '/'))
   silent bdelete! RELab_temp
+  12DebugRELab printf('Add matches to the cache')
+  call add(s:info.cache[s:info.regexp], matches)
   return matches
+endfunction "}}}
+
+function! s:parse() "{{{
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
+  if !has_key(s:info, 'parser')
+    12DebugRELab printf('add the first parser')
+    let s:info.parser = relab#parser#new()
+  endif
+  let regexp = s:info.regexp
+  if has_key(s:info.cache, regexp)
+    12DebugRELab printf('Return the cached parser')
+    let s:info.parser = s:info.cache[regexp]
+  else
+    12DebugRELab printf('Parse the regexp and add it to the cache')
+    call s:info.parser.parse(regexp)
+    let s:info.cache[regexp] = [s:info.parser]
+  endif
+endfunction "}}}
+
+function! s:init_info() "{{{
+  11DebugRELab printf('%s:', expand('<sfile>'))
+  11DebugRELab printf('args: %s', a:)
+  let file = get(g:, 'relab_file_path', '')
+  " open the RELab buffer, so opening RELab_temp doesn't affect other
+  " buffers.
+  call s:set_scratch([], 0)
+  " set up s:info
+  let data = filereadable(file) ? readfile(file) : []
+  if get(g:, 'relab_no_file', 0) || len(data) < 2
+    " if testing or there is incomplete data, then set it up from scratch
+    let info = get(s:, 'info', {})
+    let info.view = 'validation'
+    let info.regexp = '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$'
+    let info.lines = [
+          \ 'This is some text to play with your regular expressions',
+          \ 'Read :help relab',
+          \ '',
+          \ 'Some emails from http://codefool.tumblr.com/post/15288874550/'
+          \ . 'list-of-valid-and-invalid-email-addresses',
+          \ 'List of Valid Email Addresses',
+          \ '',
+          \ 'email@example.com',
+          \ 'firstname.lastname@example.com',
+          \ 'email@subdomain.example.com',
+          \ 'firstname+lastname@example.com',
+          \ 'email@123.123.123.123',
+          \ 'email@[123.123.123.123]',
+          \ '“email”@example.com',
+          \ '1234567890@example.com',
+          \ 'email@example-one.com',
+          \ '_______@example.com',
+          \ 'email@example.name',
+          \ 'email@example.museum',
+          \ 'email@example.co.jp',
+          \ 'firstname-lastname@example.com',
+          \ '',
+          \ 'List of Strange Valid Email Addresses',
+          \ '',
+          \ 'much.“more\ unusual”@example.com',
+          \ 'very.unusual.“@”.unusual.com@example.com',
+          \ 'very.“(),:;<>[]”.VERY.“very@\\ "very”.unusual@lol.domain.com',
+          \ '',
+          \ 'List of Invalid Email Addresses',
+          \ '',
+          \ 'plainaddress',
+          \ '#@%^%#$@#$@#.com',
+          \ '@example.com',
+          \ 'Joe Smith <email@example.com>',
+          \ 'email.example.com',
+          \ 'email@example@example.com',
+          \ '.email@example.com',
+          \ 'email.@example.com',
+          \ 'email..email@example.com',
+          \ 'あいうえお@example.com',
+          \ 'email@example.com (Joe Smith)',
+          \ 'email@example',
+          \ 'email@-example.com',
+          \ 'email@example.web',
+          \ 'email@111.222.333.44444',
+          \ 'email@example..com',
+          \ 'Abc..123@example.com',
+          \ '',
+          \ 'List of Strange Invalid Email Addresses',
+          \ '',
+          \ '“(),:;<>[\]@example.com',
+          \ 'just"not"right@example.com',
+          \ 'this\ is"really"not\allowed@example.com',
+          \ ]
+  else
+    " otherwise set it up from the file
+    let info = {}
+    let [info.view, info.regexp; info.lines] = data
+  endif
+  let info.cache = {}
+  let s:info = info
 endfunction "}}}
 
 function! s:update_info(info, undojoin) "{{{
@@ -237,74 +339,7 @@ function! s:update_info(info, undojoin) "{{{
     " buffers.
     call s:set_scratch([], 0)
     " set up s:info
-    let first = 1
-    let data = filereadable(file) ? readfile(file) : []
-    if get(g:, 'relab_no_file', 0) || len(data) < 2
-      " if testing or there is incomplete data, then set it up from scratch
-      let s:info = get(s:, 'info', {})
-      let s:info.view = 'validation'
-      let s:info.regexp = get(s:info, 'regexp',
-            \ '^\(\%(\S\|\\.\)\+\)@\(\S\+\.\S\+\)$')
-      let s:info.lines = get(s:info, 'lines', [
-            \ 'This is some text to play with your regular expressions',
-            \ 'Read :help relab',
-            \ '',
-            \ 'Some emails from http://codefool.tumblr.com/post/15288874550/'
-            \ . 'list-of-valid-and-invalid-email-addresses',
-            \ 'List of Valid Email Addresses',
-            \ '',
-            \ 'email@example.com',
-            \ 'firstname.lastname@example.com',
-            \ 'email@subdomain.example.com',
-            \ 'firstname+lastname@example.com',
-            \ 'email@123.123.123.123',
-            \ 'email@[123.123.123.123]',
-            \ '“email”@example.com',
-            \ '1234567890@example.com',
-            \ 'email@example-one.com',
-            \ '_______@example.com',
-            \ 'email@example.name',
-            \ 'email@example.museum',
-            \ 'email@example.co.jp',
-            \ 'firstname-lastname@example.com',
-            \ '',
-            \ 'List of Strange Valid Email Addresses',
-            \ '',
-            \ 'much.“more\ unusual”@example.com',
-            \ 'very.unusual.“@”.unusual.com@example.com',
-            \ 'very.“(),:;<>[]”.VERY.“very@\\ "very”.unusual@lol.domain.com',
-            \ '',
-            \ 'List of Invalid Email Addresses',
-            \ '',
-            \ 'plainaddress',
-            \ '#@%^%#$@#$@#.com',
-            \ '@example.com',
-            \ 'Joe Smith <email@example.com>',
-            \ 'email.example.com',
-            \ 'email@example@example.com',
-            \ '.email@example.com',
-            \ 'email.@example.com',
-            \ 'email..email@example.com',
-            \ 'あいうえお@example.com',
-            \ 'email@example.com (Joe Smith)',
-            \ 'email@example',
-            \ 'email@-example.com',
-            \ 'email@example.web',
-            \ 'email@111.222.333.44444',
-            \ 'email@example..com',
-            \ 'Abc..123@example.com',
-            \ '',
-            \ 'List of Strange Invalid Email Addresses',
-            \ '',
-            \ '“(),:;<>[\]@example.com',
-            \ 'just"not"right@example.com',
-            \ 'this\ is"really"not\allowed@example.com',
-            \ ])
-    else
-      " otherwise set it up from the file
-      let s:info = {}
-      let [s:info.view, s:info.regexp; s:info.lines] = data
-    endif
+    call s:init_info()
   endif "}}}
   let info = filter(copy(s:info), 'v:key !=# ''parser''')
   11DebugRELab printf('a:info: %s', a:info)
@@ -313,13 +348,13 @@ function! s:update_info(info, undojoin) "{{{
     11DebugRELab printf('Get new parser:')
     " No parser, add one
     let s:info.parser = relab#parser#new()
-    call s:info.parser.parse(s:info.regexp)
+    call s:parse()
   endif
   if has_key(a:info, 'regexp') && a:info.regexp != s:info.regexp
     11DebugRELab printf('Updating regexp: %s', a:info.regexp)
     " new regexp, parse it
-    call s:info.parser.parse(a:info.regexp)
     let s:info.regexp = a:info.regexp
+    call s:parse()
   endif
   if has_key(a:info, 'view')
     11DebugRELab printf('Updating view: %s', a:info.view)
@@ -330,6 +365,8 @@ function! s:update_info(info, undojoin) "{{{
     11DebugRELab printf('Updating lines: %s', a:info.lines)
     " new lines
     let s:info.lines = a:info.lines
+    " the matches on the cache are invalid now, let's purge them
+    call map(s:info.cache, {k, v -> [v[0]]})
   endif
   let info = filter(copy(s:info), 'v:key !=# ''parser''')
   11DebugRELab printf('updated s:info: %s', info)
