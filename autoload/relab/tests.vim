@@ -973,7 +973,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline(21)
-      let expected =  '  \) => Ends a capturing group.'
+      let expected =  '  \) => Ends capturing group number 2.'
       call assert_equal(expected, got)
 
     endif
@@ -1075,7 +1075,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline(21)
-      let expected =  '  \) => Ends a capturing group.'
+      let expected =  '  \) => Ends capturing group number 2.'
       call assert_equal(expected, got)
 
     endif
@@ -1302,7 +1302,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline(21)
-      let expected =  '  \) => Ends a capturing group.'
+      let expected =  '  \) => Ends capturing group number 2.'
       call assert_equal(expected, got)
 
     endif
@@ -1404,7 +1404,7 @@ function! s:views() "{{{
       call assert_equal(expected, got, msg)
 
       let got = getline(21)
-      let expected =  '  \) => Ends a capturing group.'
+      let expected =  '  \) => Ends capturing group number 2.'
       call assert_equal(expected, got)
 
     endif

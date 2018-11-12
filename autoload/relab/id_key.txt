@@ -64,8 +64,8 @@ $	/$	At end of pattern or branch, end-of-line with zero width; at other position
 \%x	/\%x	The character "%s".
 \%xi	/\%x	The character "%s" or the character "%s".
 \&	/\&	Concatenation, works like a logical AND, matches the subexpression on the righ only if the subexpression on the left also matches.
-\(	/\(	Starts a capturing group.
-\)	/\)	Ends a capturing group.
+\(	/\(	Starts capturing group number %s.
+\)	/\)	Ends capturing group number %s.
 \+	/\+	1 or more of the preceding atom, as many as possible.
 \1	/\1	The same string that was matched by the first sub-expression in \( and \).
 \2	/\2	The same string that was matched by the second sub-expression in \( and \).

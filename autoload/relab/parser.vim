@@ -300,6 +300,14 @@ function! s:line(node) dict
       " either the character has no case or we are matching case
       let line = printf(line, char)
     endif
+  elseif id ==# '\('
+    23DebugRELab 'line -> start capturing group'
+    " start capturing group
+    let line = printf(line, a:node.capt_groups)
+  elseif id ==# '\)'
+    23DebugRELab 'line -> end capturing group'
+    " end capturing group
+    let line = printf(line, a:node.capt_groups)
   elseif has_key(self.id_map, id)
     23DebugRELab 'line -> has key'
     " nothing to do here, the description format is as it should
